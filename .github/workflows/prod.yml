@@ -78,12 +78,17 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.DROPLET_SSH_KEY }}
+        known_hosts: 'placeholder'
+
+    - name: Add droplet to known_hosts
+      run: ssh-keyscan -H ${{ vars.DROPLET_IP }} >> ~/.ssh/known_hosts
+
     - name: Copy compose.yml to droplet
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
-        scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
+      run: scp compose.yml root@${{ vars.DROPLET_IP }}:~
 
     - name: Deploy
       uses: appleboy/ssh-action@master
