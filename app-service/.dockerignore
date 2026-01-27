@@ -1,4 +1,14 @@
 .env
+.env.*
+.git
+.github
+.gitignore
+.DS_Store
+Cargo.lock
+Cargo.toml
 target/
 tests/
+compose*.yml
 Dockerfile
+README.md
+*.md

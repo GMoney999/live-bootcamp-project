@@ -1,0 +1,22 @@
+# Global ignores for workspace
+# OS files
+.DS_Store
+
+# Rust build artifacts
+/target/
+**/target/
+
+# Environment and secrets
+.env
+.env.*
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Logs & coverage
+*.log
+coverage/
+
+# Docker local files
+*.local.yml
