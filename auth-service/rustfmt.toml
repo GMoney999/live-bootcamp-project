@@ -1,0 +1,3 @@
+tab_spaces = 8
+max_width = 100  # Force line breaks earlier, making deep nesting ugly
+use_small_heuristics = "Off"  # More aggressive formatting of nested structures
