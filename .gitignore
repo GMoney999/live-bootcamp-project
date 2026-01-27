@@ -5,7 +5,7 @@
 # Rust build artifacts
 /target/
 **/target/
-
+target/rust-analyzer/flycheck0
 # Environment and secrets
 .env
 .env.*
