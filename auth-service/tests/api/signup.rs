@@ -1,6 +1,11 @@
 use crate::{get_random_email, SignupPayload, TestApp, TestResult};
 
 #[tokio::test]
+async fn should_return_201_if_valid_input() -> TestResult<()> {
+        Ok(())
+}
+
+#[tokio::test]
 async fn should_return_422_if_malformed_input() -> TestResult<()> {
         let app = TestApp::new().await?;
 

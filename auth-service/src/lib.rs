@@ -1,6 +1,8 @@
+pub mod domain;
 /// Modules
 pub mod router;
 pub mod routes;
+pub mod services;
 pub mod utils;
 
 use router::app_routes;
