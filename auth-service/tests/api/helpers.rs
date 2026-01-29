@@ -2,9 +2,11 @@ use auth_service::{
         routes::{
                 LoginPayload, LogoutPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload,
         },
-        Application,
+        services::hashmap_user_store::HashmapUserStore,
+        AppState, Application,
 };
-use std::error::Error;
+use std::{error::Error, sync::Arc};
+use tokio::sync::RwLock;
 
 type TestAppResult = core::result::Result<reqwest::Response, Box<dyn std::error::Error>>;
 
@@ -15,7 +17,12 @@ pub struct TestApp {
 
 impl TestApp {
         pub async fn new() -> Result<Self, Box<dyn Error>> {
-                let app = Application::build("127.0.0.1:0").await?;
+                let store = Arc::new(RwLock::new(HashmapUserStore::new()));
+
+                let app_state = AppState::new(store);
+
+                let app = Application::build(app_state, "127.0.0.1:0").await?;
+
                 let address = format!("http://{}", app.address.clone());
 
                 #[allow(clippy::let_underscore_future)]

@@ -10,6 +10,7 @@ pub enum UserStoreError {
         UnexpectedError,
 }
 
+#[derive(Default)]
 pub struct HashmapUserStore {
         #[cfg_attr(test, allow(dead_code))]
         pub(crate) users: HashMap<String, User>,
@@ -17,19 +18,14 @@ pub struct HashmapUserStore {
 
 impl HashmapUserStore {
         pub fn new() -> Self {
-                Self {
-                        users: HashMap::<String, User>::new(),
-                }
+                Self::default()
         }
-}
 
-impl HashmapUserStore {
         #[cfg(test)]
         pub(crate) fn insert_user_unchecked(&mut self, email: String, user: User) {
                 self.users.insert(email, user);
         }
 
-        // Test-only helper to directly access the HashMap
         #[cfg(test)]
         pub(crate) fn get_users_ref(&self) -> &HashMap<String, User> {
                 &self.users

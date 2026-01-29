@@ -1,6 +1,6 @@
 use crate::{
         handle_login, handle_login_or_signup, handle_logout, handle_signup, handle_verify_2fa,
-        handle_verify_token,
+        handle_verify_token, AppState,
 };
 use axum::{
         routing::MethodRouter,
@@ -8,7 +8,7 @@ use axum::{
         Router,
 };
 
-pub fn app_routes(asset_dir: MethodRouter) -> Router {
+pub fn app_routes(app_state: AppState, asset_dir: MethodRouter) -> Router {
         Router::new()
                 .fallback_service(asset_dir)
                 .route("/", get(handle_login_or_signup))
@@ -17,4 +17,5 @@ pub fn app_routes(asset_dir: MethodRouter) -> Router {
                 .route("/logout", post(handle_logout))
                 .route("/verify-2fa", post(handle_verify_2fa))
                 .route("/verify-token", post(handle_verify_token))
+                .with_state(app_state)
 }

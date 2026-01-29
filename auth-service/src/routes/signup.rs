@@ -1,11 +1,35 @@
 // src/routes/signup.rs
-use axum::{extract::Json, http::StatusCode, response::IntoResponse};
+use axum::{
+        extract::{Json, State},
+        http::StatusCode,
+        response::IntoResponse,
+};
+
+use crate::{domain::User, AppState};
 
 /// POST – /signup
-pub async fn handle_signup(payload: Json<SignupPayload>) -> impl IntoResponse {
+pub async fn handle_signup(
+        State(state): State<AppState>,
+        Json(payload): Json<SignupPayload>,
+) -> impl IntoResponse {
         println!("->> {:<12} — handle_signup – {payload:?}", "HANDLER");
 
-        StatusCode::OK.into_response()
+        let user = User::new(payload.email, payload.password, payload.requires_2fa);
+
+        let mut user_store = state.user_store.write().await;
+
+        user_store.add_user(user).unwrap();
+
+        let response = Json(SignupResponse {
+                message: "User created successfully!".to_string(),
+        });
+
+        (StatusCode::CREATED, response)
+}
+
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SignupResponse {
+        pub message: String,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
