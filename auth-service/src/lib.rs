@@ -1,10 +1,12 @@
+// src/lib.rs
+// Modules
 pub mod domain;
-/// Modules
 pub mod router;
 pub mod routes;
 pub mod services;
 pub mod utils;
 
+// Imports
 use axum::{
         extract::Json,
         http::StatusCode,
@@ -12,11 +14,13 @@ use axum::{
         routing::{get, get_service, post, MethodRouter},
         Router,
 };
+use domain::AuthAPIError;
 use router::app_routes;
 use routes::{
         handle_login, handle_login_or_signup, handle_logout, handle_signup, handle_verify_2fa,
         handle_verify_token,
 };
+use serde::{Deserialize, Serialize};
 use services::hashmap_user_store::HashmapUserStore;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -68,4 +72,9 @@ impl Application {
                 println!("Running on {}", self.address);
                 self.server.await
         }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ErrorResponse {
+        pub error: String,
 }
