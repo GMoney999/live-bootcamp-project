@@ -1,14 +1,5 @@
+use crate::domain::{User, UserStore, UserStoreError};
 use std::collections::HashMap;
-
-use crate::domain::User;
-
-#[derive(Debug, PartialEq)]
-pub enum UserStoreError {
-        UserAlreadyExists,
-        UserNotFound,
-        InvalidCredentials,
-        UnexpectedError,
-}
 
 #[derive(Default)]
 pub struct HashmapUserStore {
@@ -30,8 +21,11 @@ impl HashmapUserStore {
         pub(crate) fn get_users_ref(&self) -> &HashMap<String, User> {
                 &self.users
         }
+}
 
-        pub fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
+#[async_trait::async_trait]
+impl UserStore for HashmapUserStore {
+        async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
                 if self.users.contains_key(user.email()) {
                         return Err(UserStoreError::UserAlreadyExists);
                 };
@@ -40,15 +34,15 @@ impl HashmapUserStore {
                 Ok(())
         }
 
-        pub fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
+        async fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
                 match self.users.get(email) {
                         Some(user) => Ok(user.clone()),
                         None => Err(UserStoreError::UserNotFound),
                 }
         }
 
-        pub fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
-                let user = self.get_user(email)?;
+        async fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
+                let user = self.get_user(email).await?;
                 if user.password() != password {
                         return Err(UserStoreError::InvalidCredentials);
                 }
@@ -66,7 +60,7 @@ mod tests {
                 let mut store = HashmapUserStore::new();
                 let user = User::new("test@example.com", "password", false);
 
-                let result = store.add_user(user.clone());
+                let result = store.add_user(user.clone()).await;
 
                 assert!(result.is_ok());
                 // Direct HashMap access instead of get_user
@@ -81,7 +75,7 @@ mod tests {
                 // Direct insert instead of add_user
                 store.insert_user_unchecked("test@example.com".to_string(), user.clone());
 
-                assert_eq!(store.get_user("test@example.com").unwrap(), user);
+                assert_eq!(store.get_user("test@example.com").await.unwrap(), user);
         }
 
         #[tokio::test]
@@ -90,8 +84,8 @@ mod tests {
 
                 let user = User::new("test@example.com", "password", false);
 
-                store.add_user(user.clone()).unwrap();
+                store.add_user(user.clone()).await.unwrap();
 
-                assert!(store.validate_user("test@example.com", "password").is_ok());
+                assert!(store.validate_user("test@example.com", "password").await.is_ok());
         }
 }

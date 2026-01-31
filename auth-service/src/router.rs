@@ -1,6 +1,6 @@
 use crate::{
-        handle_login, handle_login_or_signup, handle_logout, handle_signup, handle_verify_2fa,
-        handle_verify_token, AppState,
+        domain::UserStore, handle_login, handle_login_or_signup, handle_logout, handle_signup,
+        handle_verify_2fa, handle_verify_token, AppState,
 };
 use axum::{
         routing::MethodRouter,
@@ -8,7 +8,10 @@ use axum::{
         Router,
 };
 
-pub fn app_routes(app_state: AppState, asset_dir: MethodRouter) -> Router {
+pub fn app_routes<T>(app_state: AppState<T>, asset_dir: MethodRouter) -> Router
+where
+        T: UserStore + 'static,
+{
         Router::new()
                 .fallback_service(asset_dir)
                 .route("/", get(handle_login_or_signup))

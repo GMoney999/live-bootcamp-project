@@ -1,6 +1,6 @@
 // src/routes/signup.rs
 use crate::{
-        domain::{AuthAPIError, User},
+        domain::{AuthAPIError, User, UserStore},
         AppState, ErrorResponse,
 };
 use axum::{
@@ -13,10 +13,13 @@ use regex::Regex;
 
 /// POST – /signup
 /// A 500 HTTP status code should be returned if an unexpected error occurs.
-pub async fn handle_signup(
-        State(state): State<AppState>,
+pub async fn handle_signup<T>(
+        State(state): State<AppState<T>>,
         Json(payload): Json<SignupPayload>,
-) -> Result<impl IntoResponse, AuthAPIError> {
+) -> Result<impl IntoResponse, AuthAPIError>
+where
+        T: UserStore,
+{
         println!("->> {:<12} — handle_signup – {payload:?}", "HANDLER");
 
         let req_email = payload.email_to_owned();
@@ -28,15 +31,20 @@ pub async fn handle_signup(
         }
 
         // If one attempts to create a new user with an existing email address, a 409 HTTP status code should be returned.
-        if state.user_store.read().await.get_user(&req_email).is_ok() {
+        // Check with read lock first
+        let user_exists = {
+                let store_guard = state.user_store.read().await;
+                store_guard.get_user(&req_email).await.is_ok()
+        }; // Read lock dropped here
+
+        if user_exists {
                 return Err(AuthAPIError::UserAlreadyExists);
         }
 
         let user = User::new(payload.email, payload.password, payload.requires_2fa);
 
-        let mut user_store = state.user_store.write().await;
-
-        match user_store.add_user(user) {
+        // Now safe to acquire write lock
+        match state.user_store.write().await.add_user(user).await {
                 Ok(_) => Ok(SignupResponse::new("User created successfully!")),
                 Err(_) => Err(AuthAPIError::UserAlreadyExists),
         }
@@ -92,54 +100,6 @@ impl SignupPayload {
         }
         pub fn password_to_owned(&self) -> String {
                 self.password.clone()
-        }
-}
-
-// DO NOT MODIFY
-#[derive(Debug)]
-enum SignupState {
-        UserCreated,
-        InvalidInput {
-                error: String,
-        },
-        EmailAlreadyExists {
-                error: String,
-        },
-        UnprocessableContent,
-        UnexpectedError {
-                error: String,
-        },
-}
-impl SignupState {
-        pub fn into_response(self) -> (StatusCode, Json<SignupResponse>) {
-                match self {
-                        /// User Created
-                        Self::UserCreated => (
-                                StatusCode::CREATED,
-                                Json(SignupResponse::new("User created successfully!")),
-                        ),
-
-                        /// Invalid Input
-                        Self::InvalidInput {
-                                error: e,
-                        } => (StatusCode::BAD_REQUEST, Json(SignupResponse::new(e))),
-
-                        /// Email Already Exists
-                        Self::EmailAlreadyExists {
-                                error: e,
-                        } => (StatusCode::CONFLICT, Json(SignupResponse::new(e))),
-
-                        /// Unprocessable Content
-                        Self::UnprocessableContent => (
-                                StatusCode::UNPROCESSABLE_ENTITY,
-                                Json(SignupResponse::new("Unprocessable content.")),
-                        ),
-
-                        /// Unexpected Error
-                        Self::UnexpectedError {
-                                error: e,
-                        } => (StatusCode::INTERNAL_SERVER_ERROR, Json(SignupResponse::new(e))),
-                }
         }
 }
 

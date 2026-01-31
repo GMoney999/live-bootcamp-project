@@ -27,16 +27,35 @@ use tokio::sync::RwLock;
 use tower_http::services::{ServeDir, ServeFile};
 use utils::fetch_assets;
 
+use crate::domain::UserStore;
+
 /// Types
 pub type AppResult<T> = core::result::Result<T, Box<dyn std::error::Error>>;
-pub type UserStoreType = Arc<RwLock<HashmapUserStore>>;
+pub type UserStoreType<T> = Arc<RwLock<T>>;
 
-#[derive(Clone)]
-pub struct AppState {
-        pub user_store: UserStoreType,
+pub struct AppState<T>
+where
+        T: UserStore,
+{
+        pub user_store: Arc<RwLock<T>>,
 }
-impl AppState {
-        pub fn new(user_store: UserStoreType) -> Self {
+
+impl<T> Clone for AppState<T>
+where
+        T: UserStore,
+{
+        fn clone(&self) -> Self {
+                Self {
+                        user_store: Arc::clone(&self.user_store),
+                }
+        }
+}
+
+impl<T> AppState<T>
+where
+        T: UserStore,
+{
+        pub fn new(user_store: Arc<RwLock<T>>) -> Self {
                 Self {
                         user_store,
                 }
@@ -51,7 +70,11 @@ pub struct Application {
 }
 
 impl Application {
-        pub async fn build<S: Into<String>>(app_state: AppState, address: S) -> AppResult<Self> {
+        pub async fn build<T, S>(app_state: AppState<T>, address: S) -> AppResult<Self>
+        where
+                T: UserStore + 'static,
+                S: Into<String>,
+        {
                 let asset_dir = fetch_assets();
                 let router = app_routes(app_state, asset_dir);
 
