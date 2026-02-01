@@ -1,5 +1,33 @@
-use crate::{LoginPayload, TestApp, TestResult};
-use auth_service::{routes::SignupPayload, ErrorResponse};
+use crate::{get_random_email, TestApp, TestResult};
+use auth_service::{utils::constants::JWT_COOKIE_NAME, ErrorResponse};
+
+#[tokio::test]
+async fn should_return_201_if_valid_credentials_and_2fa_disabled() -> TestResult<()> {
+        let app = TestApp::new().await?;
+        let random_email = get_random_email();
+        let signup_payload = serde_json::json!({
+                "email": random_email.clone(),
+                "password": "ValidPassword123",
+                "requires2FA": false
+        });
+        let res = app.post_signup(&signup_payload).await;
+        assert_eq!(res.status().as_u16(), 201);
+
+        let login_payload = serde_json::json!({
+                "email": random_email,
+                "password": "ValidPassword123"
+        });
+        let res = app.post_login(&login_payload).await;
+
+        let auth_token = res
+                .cookies()
+                .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+                .expect("Failed to find jwt token cookie");
+
+        assert!(!auth_token.name().is_empty());
+
+        Ok(())
+}
 
 #[tokio::test]
 async fn should_return_400_if_invalid_input() -> TestResult<()> {
@@ -42,10 +70,18 @@ async fn should_return_401_if_incorrect_credentials() -> TestResult<()> {
         let password = "ValidPassword123".to_string();
         let other_password = "ValidPassword456".to_string();
 
-        let signup = SignupPayload::new(email.clone(), password.clone(), false);
-        let _ = app.post_signup(&signup).await;
+        let signup_payload = serde_json::json!({
+                "email": email.clone(),
+                "password": password.clone(),
+                "requires2FA": false
+        });
 
-        let login = LoginPayload::new(email, other_password);
+        let _ = app.post_signup(&signup_payload).await;
+
+        let login = serde_json::json!({
+                "email": email,
+                "password": other_password
+        });
 
         let res = app.post_login(&login).await;
 
