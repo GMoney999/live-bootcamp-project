@@ -1,29 +1,35 @@
-#[derive(Default, Debug, Clone, PartialEq)]
+use crate::domain::{email::Email, password::Password};
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct User {
-        email: String,
-        password: String,
+        email: Email,
+        password: Password,
         requires_2fa: bool,
 }
 impl User {
-        pub fn new<S: Into<String>>(email: S, password: S, requires_2fa: bool) -> Self {
-                let (email, password): (String, String) = (email.into(), password.into());
-
+        pub fn new(email: Email, password: Password, requires_2fa: bool) -> Self {
                 Self {
                         email,
                         password,
                         requires_2fa,
                 }
         }
-        pub fn email(&self) -> &String {
+        pub fn email(&self) -> &Email {
                 &self.email
         }
-        pub fn email_to_owned(&self) -> String {
+        pub fn email_str(&self) -> &str {
+                self.email.as_ref()
+        }
+        pub fn email_to_owned(&self) -> Email {
                 self.email.clone()
         }
-        pub fn password(&self) -> &String {
+        pub fn password(&self) -> &Password {
                 &self.password
         }
-        pub fn password_to_owned(&self) -> String {
+        pub fn password_str(&self) -> &str {
+                self.password.as_ref()
+        }
+        pub fn password_to_owned(&self) -> Password {
                 self.password.clone()
         }
         pub fn requires_2fa(&self) -> bool {

@@ -19,29 +19,3 @@ impl VerifyTokenPayload {
                 }
         }
 }
-
-enum TokenState {
-        Valid,
-        Invalid {
-                error: String,
-        },
-        Unprocessable,
-        Unexpected {
-                error: String,
-        },
-}
-
-impl TokenState {
-        pub fn as_response(&self) -> (StatusCode, String) {
-                match self {
-                        Self::Valid => (StatusCode::OK, "".to_owned()),
-                        Self::Unprocessable => (StatusCode::UNPROCESSABLE_ENTITY, "".to_owned()),
-                        Self::Invalid {
-                                error: e,
-                        } => (StatusCode::UNAUTHORIZED, e.to_owned()),
-                        Self::Unexpected {
-                                error: e,
-                        } => (StatusCode::INTERNAL_SERVER_ERROR, e.to_owned()),
-                }
-        }
-}

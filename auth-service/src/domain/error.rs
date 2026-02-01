@@ -1,9 +1,13 @@
-use crate::ErrorResponse;
+use crate::{
+        domain::{EmailError, PasswordError},
+        ErrorResponse,
+};
 use axum::{http::StatusCode, response::IntoResponse, Json};
 
 pub enum AuthAPIError {
         UserAlreadyExists,
         InvalidCredentials,
+        UnprocessableContent,
         UnexpectedError,
 }
 
@@ -16,6 +20,9 @@ impl IntoResponse for AuthAPIError {
                         AuthAPIError::InvalidCredentials => {
                                 (StatusCode::BAD_REQUEST, "Invalid credentials")
                         }
+                        AuthAPIError::UnprocessableContent => {
+                                (StatusCode::UNPROCESSABLE_ENTITY, "Unprocessable content")
+                        }
                         AuthAPIError::UnexpectedError => {
                                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
                         }
@@ -24,5 +31,17 @@ impl IntoResponse for AuthAPIError {
                         error: error_message.to_string(),
                 });
                 (status, body).into_response()
+        }
+}
+
+impl From<EmailError> for AuthAPIError {
+        fn from(err: EmailError) -> Self {
+                AuthAPIError::InvalidCredentials
+        }
+}
+
+impl From<PasswordError> for AuthAPIError {
+        fn from(err: PasswordError) -> Self {
+                AuthAPIError::InvalidCredentials
         }
 }

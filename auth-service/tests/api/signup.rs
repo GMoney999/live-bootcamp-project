@@ -8,7 +8,7 @@ async fn should_return_201_if_valid_input() -> TestResult<()> {
         let app = TestApp::new().await?;
         let valid_input = serde_json::json!({
                 "email": "valid@mail.com",
-                "password": "password123",
+                "password": "ValidPassword123",
                 "requires2FA": false
         });
         let res = app.post_signup(&valid_input).await;
@@ -34,14 +34,14 @@ async fn should_return_422_if_malformed_input() -> TestResult<()> {
         let test_cases = [
                 serde_json::json!({
                         "email": "valid@mail.com",
-                        "password": "password123"
+                        "password": "ValidPassword123"
                 }),
                 serde_json::json!({
-                        "password": "password123",
+                        "password": "ValidPassword123",
                         "requires2FA": true
                 }),
                 serde_json::json!({
-                        "password": "password123",
+                        "password": "ValidPassword123",
                         "requires2FA": true
                 }),
                 serde_json::json!({
@@ -50,7 +50,7 @@ async fn should_return_422_if_malformed_input() -> TestResult<()> {
                 }),
                 serde_json::json!({
                         "email": 123,
-                        "password": "password123",
+                        "password": "ValidPassword123",
                         "requires2FA": false
                 }),
                 serde_json::json!({
@@ -85,7 +85,7 @@ async fn should_return_400_if_invalid_input() -> TestResult<()> {
                 // Invalid email
                 serde_json::json!({
                         "email": "no at symbol and no dot",
-                        "password": "password123",
+                        "password": "ValidPassword123",
                         "requires2FA": false,
                 }),
                 // Invalid password
@@ -127,7 +127,7 @@ async fn should_return_409_if_email_already_exists() -> TestResult<()> {
 
         let signup_payload = serde_json::json!({
                 "email": "duplicate@mail.com",
-                "password": "password123",
+                "password": "ValidPassword123",
                 "requires2FA": false
         });
 

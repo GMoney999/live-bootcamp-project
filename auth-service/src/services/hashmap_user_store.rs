@@ -1,10 +1,10 @@
-use crate::domain::{User, UserStore, UserStoreError};
+use crate::domain::{Email, Password, User, UserStore, UserStoreError};
 use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct HashmapUserStore {
         #[cfg_attr(test, allow(dead_code))]
-        pub(crate) users: HashMap<String, User>,
+        pub(crate) users: HashMap<Email, User>,
 }
 
 impl HashmapUserStore {
@@ -13,12 +13,12 @@ impl HashmapUserStore {
         }
 
         #[cfg(test)]
-        pub(crate) fn insert_user_unchecked(&mut self, email: String, user: User) {
+        pub(crate) fn insert_user_unchecked(&mut self, email: Email, user: User) {
                 self.users.insert(email, user);
         }
 
         #[cfg(test)]
-        pub(crate) fn get_users_ref(&self) -> &HashMap<String, User> {
+        pub(crate) fn get_users_ref(&self) -> &HashMap<Email, User> {
                 &self.users
         }
 }
@@ -34,14 +34,18 @@ impl UserStore for HashmapUserStore {
                 Ok(())
         }
 
-        async fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
+        async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
                 match self.users.get(email) {
                         Some(user) => Ok(user.clone()),
                         None => Err(UserStoreError::UserNotFound),
                 }
         }
 
-        async fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
+        async fn validate_user(
+                &self,
+                email: &Email,
+                password: &Password,
+        ) -> Result<(), UserStoreError> {
                 let user = self.get_user(email).await?;
                 if user.password() != password {
                         return Err(UserStoreError::InvalidCredentials);
@@ -58,34 +62,42 @@ mod tests {
         #[tokio::test]
         async fn test_add_user() {
                 let mut store = HashmapUserStore::new();
-                let user = User::new("test@example.com", "password", false);
+                let email = Email::parse("test@example.com").unwrap();
+                let password = Password::parse("ValidPassword123").unwrap();
+
+                let user = User::new(email.clone(), password, false);
 
                 let result = store.add_user(user.clone()).await;
 
                 assert!(result.is_ok());
                 // Direct HashMap access instead of get_user
-                assert_eq!(store.get_users_ref().get("test@example.com").unwrap(), &user);
+                assert_eq!(store.get_users_ref().get(&email).unwrap(), &user);
         }
 
         #[tokio::test]
         async fn test_get_user() {
                 let mut store = HashmapUserStore::new();
-                let user = User::new("test@example.com", "password", false);
+                let email = Email::parse("test@example.com").unwrap();
+                let password = Password::parse("ValidPassword123").unwrap();
+
+                let user = User::new(email.clone(), password, false);
 
                 // Direct insert instead of add_user
-                store.insert_user_unchecked("test@example.com".to_string(), user.clone());
+                store.insert_user_unchecked(email.clone(), user.clone());
 
-                assert_eq!(store.get_user("test@example.com").await.unwrap(), user);
+                assert_eq!(store.get_user(&email).await.unwrap(), user);
         }
 
         #[tokio::test]
         async fn test_validate_user() {
                 let mut store = HashmapUserStore::new();
+                let email = Email::parse("test@example.com").unwrap();
+                let password = Password::parse("ValidPassword123").unwrap();
 
-                let user = User::new("test@example.com", "password", false);
+                let user = User::new(email.clone(), password.clone(), false);
 
                 store.add_user(user.clone()).await.unwrap();
 
-                assert!(store.validate_user("test@example.com", "password").await.is_ok());
+                assert!(store.validate_user(&email, &password).await.is_ok());
         }
 }
