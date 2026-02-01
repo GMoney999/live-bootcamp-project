@@ -1,7 +1,7 @@
 // src/routes/signup.rs
 use crate::{
         domain::{AuthAPIError, Email, Password, User, UserStore},
-        AppState, ErrorResponse,
+        AppState, ErrorResponse, HandlerResult,
 };
 use axum::{
         extract::{Json, State},
@@ -15,7 +15,7 @@ use regex::Regex;
 pub async fn handle_signup<T>(
         State(state): State<AppState<T>>,
         Json(payload): Json<SignupPayload>,
-) -> Result<impl IntoResponse, AuthAPIError>
+) -> HandlerResult<impl IntoResponse>
 where
         T: UserStore,
 {

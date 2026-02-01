@@ -25,6 +25,7 @@ impl HashmapUserStore {
 
 #[async_trait::async_trait]
 impl UserStore for HashmapUserStore {
+        /// Returns () or 409 CONFLICT
         async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
                 if self.users.contains_key(user.email()) {
                         return Err(UserStoreError::UserAlreadyExists);
@@ -34,13 +35,14 @@ impl UserStore for HashmapUserStore {
                 Ok(())
         }
 
+        /// Returns User or 404 NOT FOUND
         async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
                 match self.users.get(email) {
                         Some(user) => Ok(user.clone()),
                         None => Err(UserStoreError::UserNotFound),
                 }
         }
-
+        /// Returns () or 400 BAD REQUEST
         async fn validate_user(
                 &self,
                 email: &Email,

@@ -32,6 +32,7 @@ use crate::domain::UserStore;
 /// Types
 pub type AppResult<T> = core::result::Result<T, Box<dyn std::error::Error>>;
 pub type UserStoreType<T> = Arc<RwLock<T>>;
+pub type HandlerResult<T> = core::result::Result<T, AuthAPIError>;
 
 pub struct AppState<T>
 where

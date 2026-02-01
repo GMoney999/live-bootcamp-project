@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, serde::Deserialize)]
 pub struct Password(String);
 
 impl Password {
@@ -236,9 +236,13 @@ mod tests {
         // Property-based tests
         #[quickcheck]
         fn prop_valid_password_always_parses(s: String) -> bool {
-                if s.len() < 8 || s.len() > 128 {
-                        return true; // Skip invalid lengths
+                let char_count = s.chars().count();
+
+                // Skip invalid lengths
+                if !(8..=128).contains(&char_count) {
+                        return true;
                 }
+
                 let has_upper = s.chars().any(|c| c.is_uppercase());
                 let has_lower = s.chars().any(|c| c.is_lowercase());
                 let has_digit = s.chars().any(|c| c.is_ascii_digit());
