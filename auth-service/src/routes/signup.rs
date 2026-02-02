@@ -1,7 +1,7 @@
 // src/routes/signup.rs
 use crate::{
-        domain::{AuthAPIError, Email, Password, User, UserStore},
-        AppState, ErrorResponse, HandlerResult,
+        domain::{AuthAPIError, Email, ErrorResponse, Password, User, UserStore},
+        AppState, HandlerResult,
 };
 use axum::{
         extract::{Json, State},

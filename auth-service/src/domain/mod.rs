@@ -6,6 +6,6 @@ mod user;
 
 pub use data_stores::{UserStore, UserStoreError};
 pub use email::{Email, EmailError};
-pub use error::AuthAPIError;
+pub use error::{AuthAPIError, ErrorResponse};
 pub use password::{Password, PasswordError};
 pub use user::User;

@@ -7,8 +7,9 @@ use axum::{
         routing::{get, post},
         Router,
 };
+use tower_http::cors::CorsLayer;
 
-pub fn app_routes<T>(app_state: AppState<T>, asset_dir: MethodRouter) -> Router
+pub fn app_routes<T>(app_state: AppState<T>, cors: CorsLayer, asset_dir: MethodRouter) -> Router
 where
         T: UserStore + 'static,
 {
@@ -21,4 +22,5 @@ where
                 .route("/verify-2fa", post(handle_verify_2fa))
                 .route("/verify-token", post(handle_verify_token))
                 .with_state(app_state)
+                .layer(cors)
 }

@@ -1,15 +1,30 @@
 use crate::{
         domain::{EmailError, PasswordError, UserStoreError},
-        ErrorResponse,
+        routes::LogoutError,
 };
 use axum::{http::StatusCode, response::IntoResponse, Json};
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct ErrorResponse {
+        pub error: String,
+}
+
 pub enum AuthAPIError {
-        UserAlreadyExists,
-        UserNotFound,
-        Unauthorized,
+        /// 400
         InvalidCredentials,
+        /// 400
+        MissingToken,
+        /// 401
+        Unauthorized,
+        /// 401
+        InvalidToken,
+        /// 404
+        UserNotFound,
+        /// 409
+        UserAlreadyExists,
+        /// 422
         UnprocessableContent,
+        /// 500
         UnexpectedError,
 }
 
@@ -20,18 +35,31 @@ impl IntoResponse for AuthAPIError {
                         AuthAPIError::InvalidCredentials => {
                                 (StatusCode::BAD_REQUEST, "Invalid credentials")
                         }
+                        /// 400
+                        AuthAPIError::MissingToken => {
+                                (StatusCode::BAD_REQUEST, "Missing JWT auth token")
+                        }
+
                         /// 401
                         AuthAPIError::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized"),
+                        /// 401
+                        AuthAPIError::InvalidToken => {
+                                (StatusCode::UNAUTHORIZED, "Invalid JWT auth token")
+                        }
+
                         /// 404
                         AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
+
                         /// 409
                         AuthAPIError::UserAlreadyExists => {
                                 (StatusCode::CONFLICT, "User already exists")
                         }
+
                         /// 422
                         AuthAPIError::UnprocessableContent => {
                                 (StatusCode::UNPROCESSABLE_ENTITY, "Unprocessable content")
                         }
+
                         /// 500
                         AuthAPIError::UnexpectedError => {
                                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
@@ -64,5 +92,14 @@ impl From<EmailError> for AuthAPIError {
 impl From<PasswordError> for AuthAPIError {
         fn from(err: PasswordError) -> Self {
                 AuthAPIError::InvalidCredentials
+        }
+}
+
+impl From<LogoutError> for AuthAPIError {
+        fn from(err: LogoutError) -> Self {
+                match err {
+                        LogoutError::MissingToken => AuthAPIError::MissingToken,
+                        LogoutError::InvalidToken => AuthAPIError::InvalidToken,
+                }
         }
 }

@@ -1,5 +1,5 @@
 use crate::{get_random_email, TestApp, TestResult};
-use auth_service::{utils::constants::JWT_COOKIE_NAME, ErrorResponse};
+use auth_service::{domain::ErrorResponse, utils::constants::JWT_COOKIE_NAME};
 
 #[tokio::test]
 async fn should_return_201_if_valid_credentials_and_2fa_disabled() -> TestResult<()> {

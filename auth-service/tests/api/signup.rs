@@ -1,4 +1,4 @@
-use auth_service::{routes::SignupResponse, ErrorResponse};
+use auth_service::{domain::ErrorResponse, routes::SignupResponse};
 use axum::response;
 
 use crate::{get_random_email, SignupPayload, TestApp, TestResult};

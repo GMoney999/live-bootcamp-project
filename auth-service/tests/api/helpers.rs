@@ -1,18 +1,20 @@
 use auth_service::{
-        routes::{
-                LoginPayload, LogoutPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload,
-        },
+        routes::{LoginPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload},
         services::hashmap_user_store::HashmapUserStore,
+        utils::constants::test,
         AppState, Application,
 };
+use axum_extra::extract::CookieJar;
+use reqwest::cookie::Jar;
 use std::{error::Error, sync::Arc};
 use tokio::sync::RwLock;
 
 type TestAppResult = core::result::Result<reqwest::Response, Box<dyn std::error::Error>>;
 
 pub struct TestApp {
-        address: String,
-        http_client: reqwest::Client,
+        pub address: String,
+        pub cookie_jar: Arc<Jar>,
+        pub http_client: reqwest::Client,
 }
 
 impl TestApp {
@@ -21,17 +23,23 @@ impl TestApp {
 
                 let app_state = AppState::new(store);
 
-                let app = Application::build(app_state, "127.0.0.1:0").await?;
+                let app = Application::build(app_state, test::APP_ADDRESS).await?;
 
                 let address = format!("http://{}", app.address.clone());
 
                 #[allow(clippy::let_underscore_future)]
                 let _ = tokio::spawn(app.run());
 
-                let http_client = reqwest::Client::new();
+                let cookie_jar = Arc::new(Jar::default());
+
+                let http_client = reqwest::Client::builder()
+                        .cookie_provider(cookie_jar.clone())
+                        .build()
+                        .unwrap();
 
                 Ok(TestApp {
                         address,
+                        cookie_jar,
                         http_client,
                 })
         }
@@ -75,13 +83,9 @@ impl TestApp {
                         .expect("Failed to execute request")
         }
 
-        pub async fn post_logout(&self, payload: &LogoutPayload) -> TestAppResult {
-                let response = self
-                        .http_client
-                        .post(format!("{}/logout", &self.address))
-                        .json(&payload)
-                        .send()
-                        .await?;
+        pub async fn post_logout(&self) -> TestAppResult {
+                let response =
+                        self.http_client.post(format!("{}/logout", &self.address)).send().await?;
                 Ok(response)
         }
 
