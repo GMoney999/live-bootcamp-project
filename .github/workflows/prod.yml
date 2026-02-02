@@ -44,7 +44,7 @@ jobs:
         export LOCALHOST_URL=secret 
         export DROPLET_IP=secret
         cargo build --verbose
-        cargo test --verbose
+        cargo test --verbose -- --test-threads=1
 
       # Set up Docker Buildx for multi-platform builds
     - name: Set up Docker Buildx
