@@ -41,8 +41,8 @@ jobs:
       working-directory: ./auth-service
       run: |
         export JWT_SECRET=secret
-        export LOCALHOST_URL=secret 
-        export DROPLET_IP=secret
+        export LOCALHOST_URL=secret
+        export DROPLET_URL=secret
         cargo build --verbose
         cargo test --verbose -- --test-threads=1
 
