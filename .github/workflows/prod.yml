@@ -103,6 +103,9 @@ jobs:
           cd ~
           export JWT_SECRET=${{ secrets.JWT_SECRET }}
           export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
+          export LOCALHOST_URL=http://localhost:3000
+          export DROPLET_URL=http://${{ vars.DROPLET_IP }}:3000
+          export DROPLET_IP=${{ vars.DROPLET_IP }}
           docker compose down
           docker compose pull
           docker compose up -d
