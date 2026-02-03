@@ -1,6 +1,6 @@
 use crate::{
         domain::{EmailError, PasswordError, UserStoreError},
-        routes::LogoutError,
+        routes::{LogoutError, TokenError},
 };
 use axum::{http::StatusCode, response::IntoResponse, Json};
 
@@ -100,6 +100,15 @@ impl From<LogoutError> for AuthAPIError {
                 match err {
                         LogoutError::MissingToken => AuthAPIError::MissingToken,
                         LogoutError::InvalidToken => AuthAPIError::InvalidToken,
+                }
+        }
+}
+
+impl From<TokenError> for AuthAPIError {
+        fn from(err: TokenError) -> Self {
+                match err {
+                        TokenError::InvalidToken => AuthAPIError::InvalidToken,
+                        TokenError::MalformedInput => AuthAPIError::UnprocessableContent,
                 }
         }
 }

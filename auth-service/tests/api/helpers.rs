@@ -89,11 +89,14 @@ impl TestApp {
                 Ok(response)
         }
 
-        pub async fn post_verify_token(&self, token: &VerifyTokenPayload) -> TestAppResult {
+        pub async fn post_verify_token<Body>(&self, body: &Body) -> TestAppResult
+        where
+                Body: serde::Serialize,
+        {
                 let response = self
                         .http_client
                         .post(format!("{}/verify-token", self.address))
-                        .json(&token)
+                        .json(&body)
                         .send()
                         .await?;
                 Ok(response)

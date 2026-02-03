@@ -1,10 +1,22 @@
 // src/routes/verify_token.rs
 use axum::{extract::Json, http::StatusCode, response::IntoResponse};
 
-pub async fn handle_verify_token(Json(payload): Json<VerifyTokenPayload>) -> impl IntoResponse {
+use crate::{domain::AuthAPIError, utils::auth::validate_token, HandlerResult};
+
+// If the JSON object is missing or malformed, a 422 HTTP status code will be sent back (handled by Axum's JSON extractor)
+pub async fn handle_verify_token(
+        Json(payload): Json<VerifyTokenPayload>,
+) -> HandlerResult<impl IntoResponse> {
         println!("->> {:<12} — handle_verify_token – {payload:?}", "HANDLER");
 
-        StatusCode::OK.into_response()
+        if payload.token.is_empty() {
+                return Err(TokenError::MalformedInput.into());
+        }
+
+        // Validate the token
+        validate_token(&payload.token).await.map_err(|_| TokenError::InvalidToken)?;
+
+        Ok(StatusCode::OK.into_response())
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -18,4 +30,12 @@ impl VerifyTokenPayload {
                         token,
                 }
         }
+}
+
+#[derive(Debug)]
+pub enum TokenError {
+        /// 401
+        InvalidToken,
+        /// 422
+        MalformedInput,
 }
