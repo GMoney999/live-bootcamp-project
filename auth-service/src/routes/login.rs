@@ -15,14 +15,11 @@ use crate::{
 
 // If the JSON object is missing or malformed, a 422 HTTP status code will  be sent back (handled by Axum's JSON extractor)
 // TODO: AFTER USER LOGS IN WITHOUT 2FA, ISSUE A JWT TOKEN COOKIE
-pub async fn handle_login<T>(
-        State(state): State<AppState<T>>,
+pub async fn handle_login(
+        State(state): State<AppState>,
         jar: CookieJar,
         Json(payload): Json<LoginPayload>,
-) -> (CookieJar, HandlerResult<impl IntoResponse>)
-where
-        T: UserStore,
-{
+) -> (CookieJar, HandlerResult<impl IntoResponse>) {
         println!("->> {:<12} – handle_login – {payload:?}", "HANDLER");
 
         // If the JSON object contains invalid credentials (format), a 400 HTTP status code should be sent back.

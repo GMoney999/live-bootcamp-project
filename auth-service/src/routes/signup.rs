@@ -12,13 +12,10 @@ use axum::{
 use regex::Regex;
 
 /// POST – /signup
-pub async fn handle_signup<T>(
-        State(state): State<AppState<T>>,
+pub async fn handle_signup(
+        State(state): State<AppState>,
         Json(payload): Json<SignupPayload>,
-) -> HandlerResult<impl IntoResponse>
-where
-        T: UserStore,
-{
+) -> HandlerResult<impl IntoResponse> {
         println!("->> {:<12} — handle_signup – {payload:?}", "HANDLER");
 
         // If the signup route is called with invalid input (ex: an incorrectly formatted email address or password), a 400 HTTP status code should be returned.

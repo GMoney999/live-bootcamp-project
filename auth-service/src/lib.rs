@@ -22,7 +22,6 @@ use routes::{
         handle_verify_token,
 };
 use serde::{Deserialize, Serialize};
-use services::hashmap_user_store::HashmapUserStore;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_http::{
@@ -32,7 +31,7 @@ use tower_http::{
 use utils::fetch_assets;
 
 use crate::{
-        domain::UserStore,
+        domain::{BannedTokenStore, UserStore},
         utils::constants::{
                 env::{DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR},
                 get_env_var,
@@ -41,34 +40,30 @@ use crate::{
 
 /// Types
 pub type AppResult<T> = core::result::Result<T, Box<dyn std::error::Error>>;
-pub type UserStoreType<T> = Arc<RwLock<T>>;
 pub type HandlerResult<T> = core::result::Result<T, AuthAPIError>;
 
-pub struct AppState<T>
-where
-        T: UserStore,
-{
-        pub user_store: Arc<RwLock<T>>,
+pub struct AppState {
+        pub user_store: Arc<RwLock<Box<dyn UserStore>>>,
+        pub banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore>>>,
 }
 
-impl<T> AppState<T>
-where
-        T: UserStore,
-{
-        pub fn new(user_store: Arc<RwLock<T>>) -> Self {
+impl AppState {
+        pub fn new(
+                user_store: impl UserStore + 'static,
+                banned_token_store: impl BannedTokenStore + 'static,
+        ) -> Self {
                 Self {
-                        user_store,
+                        user_store: Arc::new(RwLock::new(Box::new(user_store))),
+                        banned_token_store: Arc::new(RwLock::new(Box::new(banned_token_store))),
                 }
         }
 }
 
-impl<T> Clone for AppState<T>
-where
-        T: UserStore,
-{
+impl Clone for AppState {
         fn clone(&self) -> Self {
                 Self {
                         user_store: Arc::clone(&self.user_store),
+                        banned_token_store: Arc::clone(&self.banned_token_store),
                 }
         }
 }
@@ -81,11 +76,7 @@ pub struct Application {
 }
 
 impl Application {
-        pub async fn build<T, S>(app_state: AppState<T>, address: S) -> AppResult<Self>
-        where
-                T: UserStore + 'static,
-                S: Into<String>,
-        {
+        pub async fn build(app_state: AppState, address: impl Into<String>) -> AppResult<Self> {
                 let asset_dir = fetch_assets();
 
                 let allowed_origins = get_allowed_origins()?;

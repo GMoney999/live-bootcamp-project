@@ -1,8 +1,10 @@
+use async_trait::async_trait;
+
 use crate::domain::{Email, Password};
 
 use super::User;
 
-#[async_trait::async_trait]
+#[async_trait]
 pub trait UserStore: Send + Sync {
         async fn add_user(&mut self, user: User) -> Result<(), UserStoreError>;
         async fn get_user(&self, email: &Email) -> Result<User, UserStoreError>;
@@ -19,4 +21,15 @@ pub enum UserStoreError {
         UserNotFound,
         InvalidCredentials,
         UnexpectedError,
+}
+
+#[async_trait]
+pub trait BannedTokenStore: Send + Sync {
+        async fn ban_token(&mut self, token: String) -> Result<(), BannedTokenStoreError>;
+        async fn is_banned(&self, token: String) -> bool;
+}
+
+#[derive(Debug, PartialEq)]
+pub enum BannedTokenStoreError {
+        TokenAlreadyBanned,
 }

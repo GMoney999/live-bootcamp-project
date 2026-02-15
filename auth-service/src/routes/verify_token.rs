@@ -1,10 +1,15 @@
 // src/routes/verify_token.rs
-use axum::{extract::Json, http::StatusCode, response::IntoResponse};
+use axum::{
+        extract::{Json, State},
+        http::StatusCode,
+        response::IntoResponse,
+};
 
-use crate::{domain::AuthAPIError, utils::auth::validate_token, HandlerResult};
+use crate::{domain::AuthAPIError, utils::auth::validate_token, AppState, HandlerResult};
 
 // If the JSON object is missing or malformed, a 422 HTTP status code will be sent back (handled by Axum's JSON extractor)
 pub async fn handle_verify_token(
+        State(state): State<AppState>,
         Json(payload): Json<VerifyTokenPayload>,
 ) -> HandlerResult<impl IntoResponse> {
         println!("->> {:<12} — handle_verify_token – {payload:?}", "HANDLER");
@@ -14,7 +19,9 @@ pub async fn handle_verify_token(
         }
 
         // Validate the token
-        validate_token(&payload.token).await.map_err(|_| TokenError::InvalidToken)?;
+        validate_token(&state.banned_token_store, &payload.token)
+                .await
+                .map_err(|_| TokenError::InvalidToken)?;
 
         Ok(StatusCode::OK.into_response())
 }

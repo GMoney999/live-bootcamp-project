@@ -2,7 +2,7 @@ use std::env;
 
 use askama::Template;
 use axum::{
-    http::StatusCode,
+    http::{header, HeaderMap, StatusCode},
     response::{Html, IntoResponse},
     routing::get,
     Json, Router,
@@ -31,13 +31,14 @@ struct IndexTemplate {
     logout_link: String,
 }
 
-async fn root() -> impl IntoResponse {
-    let mut address = env::var("AUTH_SERVICE_IP").unwrap_or("localhost".to_owned());
-    if address.is_empty() {
-        address = "localhost".to_owned();
-    }
-    let login_link = format!("http://{}:3000", address);
-    let logout_link = format!("http://{}:3000/logout", address);
+async fn root(headers: HeaderMap) -> impl IntoResponse {
+    let host = headers
+        .get(header::HOST)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("localhost");
+    let hostname = host.split(':').next().unwrap_or("localhost");
+    let login_link = format!("http://{}:3000", hostname);
+    let logout_link = format!("http://{}:3000/logout", hostname);
 
     let template = IndexTemplate {
         login_link,

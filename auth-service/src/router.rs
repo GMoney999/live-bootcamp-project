@@ -9,10 +9,7 @@ use axum::{
 };
 use tower_http::cors::CorsLayer;
 
-pub fn app_routes<T>(app_state: AppState<T>, cors: CorsLayer, asset_dir: MethodRouter) -> Router
-where
-        T: UserStore + 'static,
-{
+pub fn app_routes(app_state: AppState, cors: CorsLayer, asset_dir: MethodRouter) -> Router {
         Router::new()
                 .fallback_service(asset_dir)
                 .route("/", get(handle_login_or_signup))

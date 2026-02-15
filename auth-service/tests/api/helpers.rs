@@ -1,7 +1,7 @@
 use auth_service::{
+        domain::BannedTokenStore,
         routes::{LoginPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload},
-        services::hashmap_user_store::HashmapUserStore,
-        utils::constants::test,
+        services::{HashmapUserStore, HashsetBannedTokenStore},
         AppState, Application,
 };
 use axum_extra::extract::CookieJar;
@@ -14,16 +14,18 @@ type TestAppResult = core::result::Result<reqwest::Response, Box<dyn std::error:
 pub struct TestApp {
         pub address: String,
         pub cookie_jar: Arc<Jar>,
+        pub banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore>>>,
         pub http_client: reqwest::Client,
 }
 
 impl TestApp {
         pub async fn new() -> Result<Self, Box<dyn Error>> {
-                let store = Arc::new(RwLock::new(HashmapUserStore::new()));
+                let app_state =
+                        AppState::new(HashmapUserStore::new(), HashsetBannedTokenStore::new());
 
-                let app_state = AppState::new(store);
+                let banned_token_store = app_state.banned_token_store.clone();
 
-                let app = Application::build(app_state, test::APP_ADDRESS).await?;
+                let app = Application::build(app_state, "127.0.0.1:0").await?;
 
                 let address = format!("http://{}", app.address.clone());
 
@@ -40,6 +42,7 @@ impl TestApp {
                 Ok(TestApp {
                         address,
                         cookie_jar,
+                        banned_token_store,
                         http_client,
                 })
         }
