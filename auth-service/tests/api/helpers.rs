@@ -1,8 +1,11 @@
 use auth_service::{
-        domain::BannedTokenStore,
+        domain::{BannedTokenStore, TwoFACodeStore, UserStore},
         routes::{LoginPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload},
-        services::{HashmapUserStore, HashsetBannedTokenStore},
-        AppState, Application,
+        services::{
+                hashmap_two_fa_code_store::HashmapTwoFACodeStore, HashmapUserStore,
+                HashsetBannedTokenStore,
+        },
+        AppState, Application, BannedTokenStoreType, TwoFACodeStoreType,
 };
 use axum_extra::extract::CookieJar;
 use reqwest::cookie::Jar;
@@ -14,16 +17,25 @@ type TestAppResult = core::result::Result<reqwest::Response, Box<dyn std::error:
 pub struct TestApp {
         pub address: String,
         pub cookie_jar: Arc<Jar>,
-        pub banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore>>>,
+        pub banned_token_store: BannedTokenStoreType,
+        pub two_fa_code_store: TwoFACodeStoreType,
         pub http_client: reqwest::Client,
 }
 
 impl TestApp {
         pub async fn new() -> Result<Self, Box<dyn Error>> {
-                let app_state =
-                        AppState::new(HashmapUserStore::new(), HashsetBannedTokenStore::new());
+                let user_store: Arc<RwLock<Box<dyn UserStore + 'static>>> =
+                        Arc::new(RwLock::new(Box::new(HashmapUserStore::new())));
+                let banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore + 'static>>> =
+                        Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::new())));
+                let two_fa_code_store: Arc<RwLock<Box<dyn TwoFACodeStore + 'static>>> =
+                        Arc::new(RwLock::new(Box::new(HashmapTwoFACodeStore::new())));
 
-                let banned_token_store = app_state.banned_token_store.clone();
+                let app_state = AppState::new(
+                        user_store,
+                        banned_token_store.clone(),
+                        two_fa_code_store.clone(),
+                );
 
                 let app = Application::build(app_state, "127.0.0.1:0").await?;
 
@@ -43,6 +55,7 @@ impl TestApp {
                         address,
                         cookie_jar,
                         banned_token_store,
+                        two_fa_code_store,
                         http_client,
                 })
         }

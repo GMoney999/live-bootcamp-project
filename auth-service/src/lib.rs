@@ -31,7 +31,7 @@ use tower_http::{
 use utils::fetch_assets;
 
 use crate::{
-        domain::{BannedTokenStore, UserStore},
+        domain::{BannedTokenStore, TwoFACodeStore, UserStore},
         utils::constants::{
                 env::{DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR},
                 get_env_var,
@@ -40,21 +40,27 @@ use crate::{
 
 /// Types
 pub type AppResult<T> = core::result::Result<T, Box<dyn std::error::Error>>;
+pub type UserStoreType = Arc<RwLock<Box<dyn UserStore + 'static>>>;
+pub type BannedTokenStoreType = Arc<RwLock<Box<dyn BannedTokenStore + 'static>>>;
+pub type TwoFACodeStoreType = Arc<RwLock<Box<dyn TwoFACodeStore + 'static>>>;
 pub type HandlerResult<T> = core::result::Result<T, AuthAPIError>;
 
 pub struct AppState {
-        pub user_store: Arc<RwLock<Box<dyn UserStore>>>,
-        pub banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore>>>,
+        pub user_store: UserStoreType,
+        pub banned_token_store: BannedTokenStoreType,
+        pub two_fa_code_store: TwoFACodeStoreType,
 }
 
 impl AppState {
         pub fn new(
-                user_store: impl UserStore + 'static,
-                banned_token_store: impl BannedTokenStore + 'static,
+                user_store: UserStoreType,
+                banned_token_store: BannedTokenStoreType,
+                two_fa_code_store: TwoFACodeStoreType,
         ) -> Self {
                 Self {
-                        user_store: Arc::new(RwLock::new(Box::new(user_store))),
-                        banned_token_store: Arc::new(RwLock::new(Box::new(banned_token_store))),
+                        user_store,
+                        banned_token_store,
+                        two_fa_code_store,
                 }
         }
 }
@@ -64,6 +70,7 @@ impl Clone for AppState {
                 Self {
                         user_store: Arc::clone(&self.user_store),
                         banned_token_store: Arc::clone(&self.banned_token_store),
+                        two_fa_code_store: Arc::clone(&self.two_fa_code_store),
                 }
         }
 }
