@@ -3,13 +3,15 @@ use axum::{
         extract::{Json, State},
         http::StatusCode,
         response::IntoResponse,
-        Json as JsonData,
 };
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-        domain::{AuthAPIError, Email, LoginAttemptId, Password, TwoFACode, UserStore},
+        domain::{
+                AuthAPIError, Email, LoginAttemptId, Password, TwoFACode, TwoFACodeStoreError,
+                UserStore,
+        },
         utils::auth::generate_auth_cookie,
         AppState, HandlerResult,
 };
@@ -76,12 +78,24 @@ async fn handle_2fa(
         let two_fa_code = TwoFACode::default();
 
         /// Store the ID and code in our 2FA code store
-        state.two_fa_code_store
+        let add_code_result = state
+                .two_fa_code_store
                 .write()
                 .await
-                .add_code(email.to_owned(), login_attempt_id.clone(), two_fa_code)
-                .await
-                .expect("Code already exists.");
+                .add_code(email.to_owned(), login_attempt_id.clone(), two_fa_code.clone())
+                .await;
+        if (add_code_result).is_err() {
+                return (jar, Err(TwoFACodeStoreError::CodeAlreadyExists.into()));
+        }
+
+        /// Send 2FA Code via Email Client
+        let send_email_result = state
+                .email_client
+                .send_email(email, "2FA: Verify Email", two_fa_code.as_ref())
+                .await;
+        if (send_email_result).is_err() {
+                return (jar, Err(AuthAPIError::UnexpectedError));
+        }
 
         /// Return the login attempt ID to the client
         let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
@@ -104,7 +118,7 @@ async fn handle_no_2fa(
 
         let jar = jar.add(auth_cookie);
 
-        (jar, Ok((StatusCode::OK, JsonData(LoginResponse::RegularAuth))))
+        (jar, Ok((StatusCode::OK, Json(LoginResponse::RegularAuth))))
 }
 
 // The login route can return 2 possible success responses.
@@ -121,7 +135,7 @@ impl IntoResponse for LoginResponse {
                 match self {
                         LoginResponse::RegularAuth => StatusCode::OK.into_response(),
                         LoginResponse::TwoFactorAuth(res) => {
-                                (StatusCode::PARTIAL_CONTENT, JsonData(res)).into_response()
+                                (StatusCode::PARTIAL_CONTENT, Json(res)).into_response()
                         }
                 }
         }

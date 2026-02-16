@@ -12,7 +12,7 @@ pub async fn handle_verify_token(
         State(state): State<AppState>,
         Json(payload): Json<VerifyTokenPayload>,
 ) -> HandlerResult<impl IntoResponse> {
-        println!("->> {:<12} — handle_verify_token – {payload:?}", "HANDLER");
+        println!("->> {:<12} — handle_verify_token – REDACTED", "HANDLER");
 
         if payload.token.is_empty() {
                 return Err(TokenError::MalformedInput.into());

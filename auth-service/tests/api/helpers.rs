@@ -1,11 +1,11 @@
 use auth_service::{
-        domain::{BannedTokenStore, TwoFACodeStore, UserStore},
+        domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
         routes::{LoginPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload},
         services::{
                 hashmap_two_fa_code_store::HashmapTwoFACodeStore, HashmapUserStore,
-                HashsetBannedTokenStore,
+                HashsetBannedTokenStore, MockEmailClient,
         },
-        AppState, Application, BannedTokenStoreType, TwoFACodeStoreType,
+        AppState, Application, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType,
 };
 use axum_extra::extract::CookieJar;
 use reqwest::cookie::Jar;
@@ -19,22 +19,25 @@ pub struct TestApp {
         pub cookie_jar: Arc<Jar>,
         pub banned_token_store: BannedTokenStoreType,
         pub two_fa_code_store: TwoFACodeStoreType,
+        pub email_client: EmailClientType,
         pub http_client: reqwest::Client,
 }
 
 impl TestApp {
         pub async fn new() -> Result<Self, Box<dyn Error>> {
-                let user_store: Arc<RwLock<Box<dyn UserStore + 'static>>> =
+                let user_store: Arc<RwLock<Box<dyn UserStore + Send + Sync>>> =
                         Arc::new(RwLock::new(Box::new(HashmapUserStore::new())));
-                let banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore + 'static>>> =
+                let banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>> =
                         Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::new())));
-                let two_fa_code_store: Arc<RwLock<Box<dyn TwoFACodeStore + 'static>>> =
+                let two_fa_code_store: Arc<RwLock<Box<dyn TwoFACodeStore + Send + Sync>>> =
                         Arc::new(RwLock::new(Box::new(HashmapTwoFACodeStore::new())));
+                let email_client: Arc<dyn EmailClient + Send + Sync> = Arc::new(MockEmailClient);
 
                 let app_state = AppState::new(
                         user_store,
                         banned_token_store.clone(),
                         two_fa_code_store.clone(),
+                        email_client.clone(),
                 );
 
                 let app = Application::build(app_state, "127.0.0.1:0").await?;
@@ -56,6 +59,7 @@ impl TestApp {
                         cookie_jar,
                         banned_token_store,
                         two_fa_code_store,
+                        email_client,
                         http_client,
                 })
         }

@@ -1,5 +1,6 @@
 mod data_stores;
 mod email;
+mod email_client;
 mod error;
 mod login_attempt_id;
 mod password;
@@ -11,6 +12,7 @@ pub use data_stores::{
         UserStoreError,
 };
 pub use email::{Email, EmailError};
+pub use email_client::*;
 pub use error::{AuthAPIError, ErrorResponse};
 pub use login_attempt_id::LoginAttemptId;
 pub use password::{Password, PasswordError};

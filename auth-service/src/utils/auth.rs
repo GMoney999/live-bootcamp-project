@@ -59,7 +59,7 @@ pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> 
 
 /// Check if JWT auth token is valid by decoding it against the JWT secret
 pub async fn validate_token(
-        banned_token_store: &Arc<RwLock<Box<dyn BannedTokenStore + 'static>>>,
+        banned_token_store: &Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>>,
         token: &str,
 ) -> Result<Claims, jsonwebtoken::errors::Error> {
         let is_banned = {
@@ -101,7 +101,7 @@ mod tests {
         use super::*;
         use crate::services::HashsetBannedTokenStore;
 
-        fn create_banned_token_store() -> Arc<RwLock<Box<dyn BannedTokenStore>>> {
+        fn create_banned_token_store() -> Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>> {
                 Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::new())))
         }
 
@@ -177,9 +177,6 @@ mod tests {
                 assert!(result.is_err());
 
                 let error = result.expect_err("banned token must fail validation");
-                assert!(matches!(
-                        error.kind(),
-                        &jsonwebtoken::errors::ErrorKind::InvalidToken
-                ));
+                assert!(matches!(error.kind(), &jsonwebtoken::errors::ErrorKind::InvalidToken));
         }
 }

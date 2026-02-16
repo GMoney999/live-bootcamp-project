@@ -31,7 +31,7 @@ use tower_http::{
 use utils::fetch_assets;
 
 use crate::{
-        domain::{BannedTokenStore, TwoFACodeStore, UserStore},
+        domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
         utils::constants::{
                 env::{DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR},
                 get_env_var,
@@ -40,15 +40,17 @@ use crate::{
 
 /// Types
 pub type AppResult<T> = core::result::Result<T, Box<dyn std::error::Error>>;
-pub type UserStoreType = Arc<RwLock<Box<dyn UserStore + 'static>>>;
-pub type BannedTokenStoreType = Arc<RwLock<Box<dyn BannedTokenStore + 'static>>>;
-pub type TwoFACodeStoreType = Arc<RwLock<Box<dyn TwoFACodeStore + 'static>>>;
+pub type UserStoreType = Arc<RwLock<Box<dyn UserStore + Send + Sync>>>;
+pub type BannedTokenStoreType = Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>>;
+pub type TwoFACodeStoreType = Arc<RwLock<Box<dyn TwoFACodeStore + Send + Sync>>>;
+pub type EmailClientType = Arc<dyn EmailClient + Send + Sync>;
 pub type HandlerResult<T> = core::result::Result<T, AuthAPIError>;
 
 pub struct AppState {
         pub user_store: UserStoreType,
         pub banned_token_store: BannedTokenStoreType,
         pub two_fa_code_store: TwoFACodeStoreType,
+        pub email_client: EmailClientType,
 }
 
 impl AppState {
@@ -56,11 +58,13 @@ impl AppState {
                 user_store: UserStoreType,
                 banned_token_store: BannedTokenStoreType,
                 two_fa_code_store: TwoFACodeStoreType,
+                email_client: EmailClientType,
         ) -> Self {
                 Self {
                         user_store,
                         banned_token_store,
                         two_fa_code_store,
+                        email_client,
                 }
         }
 }
@@ -71,6 +75,7 @@ impl Clone for AppState {
                         user_store: Arc::clone(&self.user_store),
                         banned_token_store: Arc::clone(&self.banned_token_store),
                         two_fa_code_store: Arc::clone(&self.two_fa_code_store),
+                        email_client: Arc::clone(&self.email_client),
                 }
         }
 }

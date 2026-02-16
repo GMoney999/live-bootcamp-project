@@ -1,8 +1,9 @@
 // src/routes/verify_2fa.rs
 use axum::{extract::Json, http::StatusCode, response::IntoResponse};
 
-pub async fn handle_verify_2fa(Json(payload): Json<Verify2FAPayload>) -> impl IntoResponse {
-        println!("->> {:<12} — handle_signup – {payload:?}", "HANDLER");
+pub async fn handle_verify_2fa(// Json(payload): Json<Verify2FAPayload>
+) -> impl IntoResponse {
+        println!("->> {:<12} — handle_signup", "HANDLER");
         StatusCode::OK.into_response()
 }
 
