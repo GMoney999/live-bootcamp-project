@@ -22,6 +22,7 @@ use routes::{
         handle_verify_token,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_http::{
@@ -34,7 +35,7 @@ use crate::{
         domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
         utils::constants::{
                 env::{DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR},
-                get_env_var,
+                get_env_var, DATABASE_URL,
         },
 };
 
@@ -127,4 +128,21 @@ fn get_cors(origins: [HeaderValue; 2]) -> CorsLayer {
                 .allow_methods([Method::GET, Method::POST])
                 .allow_credentials(true)
                 .allow_origin(origins)
+}
+
+async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+        // Create a new PostgreSQL connection pool
+        PgPoolOptions::new().max_connections(5).connect(url).await
+}
+
+pub async fn configure_postgresql() -> PgPool {
+        // Create a new database connection pool
+        let pg_pool = get_postgres_pool(&DATABASE_URL)
+                .await
+                .expect("Failed to create Postgres connection pool!");
+
+        // Run database migrations against our test database!
+        sqlx::migrate!().run(&pg_pool).await.expect("Failed to run migrations");
+
+        pg_pool
 }

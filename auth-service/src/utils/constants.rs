@@ -1,4 +1,6 @@
-use crate::utils::constants::env::{DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR};
+use crate::utils::constants::env::{
+        DATABASE_URL_ENV_VAR, DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR,
+};
 
 // src/utils/constants.rs
 use super::constants::env::JWT_SECRET_ENV_VAR;
@@ -10,6 +12,7 @@ lazy_static! {
         pub static ref JWT_SECRET: String = get_env_var(JWT_SECRET_ENV_VAR);
         pub static ref LOCALHOST_URL: String = get_env_var(LOCALHOST_URL_ENV_VAR);
         pub static ref DROPLET_URL: String = get_env_var(DROPLET_URL_ENV_VAR);
+        pub static ref DATABASE_URL: String = get_env_var(DATABASE_URL_ENV_VAR);
 }
 
 pub mod prod {
@@ -24,6 +27,7 @@ pub mod env {
         pub const JWT_SECRET_ENV_VAR: &str = "JWT_SECRET";
         pub const LOCALHOST_URL_ENV_VAR: &str = "LOCALHOST_URL";
         pub const DROPLET_URL_ENV_VAR: &str = "DROPLET_URL";
+        pub const DATABASE_URL_ENV_VAR: &str = "DATABASE_URL";
 }
 
 pub fn get_env_var<S: Into<String>>(var: S) -> String {
