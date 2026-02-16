@@ -32,7 +32,7 @@ impl TwoFACodeStore for HashmapTwoFACodeStore {
 
         async fn remove_code(&mut self, email: &Email) -> Result<(), TwoFACodeStoreError> {
                 if self.codes.remove(email).is_none() {
-                        return Err(TwoFACodeStoreError::EmailNotFound);
+                        return Err(TwoFACodeStoreError::CodeNotFound);
                 }
 
                 Ok(())
@@ -44,7 +44,7 @@ impl TwoFACodeStore for HashmapTwoFACodeStore {
         ) -> Result<(LoginAttemptId, TwoFACode), TwoFACodeStoreError> {
                 match self.codes.get(email) {
                         Some(login_id_and_code) => Ok(login_id_and_code.clone()),
-                        None => Err(TwoFACodeStoreError::EmailNotFound),
+                        None => Err(TwoFACodeStoreError::CodeNotFound),
                 }
         }
 }
@@ -156,7 +156,7 @@ mod tests {
                 let result = store.get_code(&email).await;
 
                 assert!(result.is_err());
-                assert!(matches!(result.unwrap_err(), TwoFACodeStoreError::EmailNotFound));
+                assert!(matches!(result.unwrap_err(), TwoFACodeStoreError::CodeNotFound));
         }
 
         #[tokio::test]
@@ -180,7 +180,7 @@ mod tests {
                 // Verify it's gone
                 let get_result = store.get_code(&email).await;
                 assert!(get_result.is_err());
-                assert!(matches!(get_result.unwrap_err(), TwoFACodeStoreError::EmailNotFound));
+                assert!(matches!(get_result.unwrap_err(), TwoFACodeStoreError::CodeNotFound));
         }
 
         #[tokio::test]
@@ -191,7 +191,7 @@ mod tests {
                 let result = store.remove_code(&email).await;
 
                 assert!(result.is_err());
-                assert!(matches!(result.unwrap_err(), TwoFACodeStoreError::EmailNotFound));
+                assert!(matches!(result.unwrap_err(), TwoFACodeStoreError::CodeNotFound));
         }
 
         #[tokio::test]
@@ -232,7 +232,7 @@ mod tests {
                 // Default store should be empty
                 let result = store.get_code(&email).await;
                 assert!(result.is_err());
-                assert!(matches!(result.unwrap_err(), TwoFACodeStoreError::EmailNotFound));
+                assert!(matches!(result.unwrap_err(), TwoFACodeStoreError::CodeNotFound));
         }
 
         #[tokio::test]

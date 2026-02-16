@@ -1,6 +1,7 @@
 use crate::{
         domain::{EmailError, PasswordError, TwoFACodeStoreError, UserStoreError},
         routes::{LogoutError, TokenError},
+        utils::auth::GenerateTokenError,
 };
 use axum::{http::StatusCode, response::IntoResponse, Json};
 
@@ -113,10 +114,16 @@ impl From<TokenError> for AuthAPIError {
         }
 }
 
+impl From<GenerateTokenError> for AuthAPIError {
+        fn from(err: GenerateTokenError) -> Self {
+                AuthAPIError::UnexpectedError
+        }
+}
+
 impl From<TwoFACodeStoreError> for AuthAPIError {
         fn from(err: TwoFACodeStoreError) -> Self {
                 match err {
-                        TwoFACodeStoreError::EmailNotFound => AuthAPIError::UserNotFound,
+                        TwoFACodeStoreError::CodeNotFound => AuthAPIError::Unauthorized,
                         TwoFACodeStoreError::CodeAlreadyExists => AuthAPIError::UserAlreadyExists,
                 }
         }

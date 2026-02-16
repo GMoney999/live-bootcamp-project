@@ -51,6 +51,6 @@ pub trait TwoFACodeStore: Send + Sync {
 
 #[derive(Debug, PartialEq)]
 pub enum TwoFACodeStoreError {
-        EmailNotFound,
+        CodeNotFound,
         CodeAlreadyExists,
 }

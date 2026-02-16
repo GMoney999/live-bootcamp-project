@@ -69,7 +69,10 @@ impl TestApp {
                 Ok(response)
         }
 
-        pub async fn post_verify_2fa(&self, payload: &Verify2FAPayload) -> TestAppResult {
+        pub async fn post_verify_2fa<Body>(&self, payload: &Body) -> TestAppResult
+        where
+                Body: serde::Serialize,
+        {
                 let response = self
                         .http_client
                         .post(format!("{}/verify-2fa", &self.address))
