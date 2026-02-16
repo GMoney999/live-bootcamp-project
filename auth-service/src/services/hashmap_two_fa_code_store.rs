@@ -23,6 +23,9 @@ impl TwoFACodeStore for HashmapTwoFACodeStore {
                 login_attempt_id: LoginAttemptId,
                 code: TwoFACode,
         ) -> Result<(), TwoFACodeStoreError> {
+                if self.codes.contains_key(&email) {
+                        return Err(TwoFACodeStoreError::CodeAlreadyExists);
+                }
                 self.codes.insert(email, (login_attempt_id, code));
                 Ok(())
         }
@@ -85,7 +88,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn test_add_code_overwrites_existing() {
+        async fn test_add_code_rejects_duplicate() {
                 let mut store = HashmapTwoFACodeStore::default();
                 let email = create_test_email();
                 let login_id1 = create_test_login_attempt_id();
@@ -93,13 +96,36 @@ mod tests {
                 let login_id2 = create_test_login_attempt_id();
                 let code2 = TwoFACode::parse("654321".to_string()).unwrap();
 
-                // Add first code
-                store.add_code(email.clone(), login_id1, code1).await.unwrap();
+                // Add first code - should succeed
+                store.add_code(email.clone(), login_id1.clone(), code1.clone()).await.unwrap();
 
-                // Add second code (should overwrite)
+                // Try to add second code - should fail with error
+                let result = store.add_code(email.clone(), login_id2, code2).await;
+                assert!(result.is_err());
+                assert_eq!(result.unwrap_err(), TwoFACodeStoreError::CodeAlreadyExists);
+
+                // Verify the first code is still intact (not overwritten)
+                let stored = store.get_code(&email).await.unwrap();
+                assert_eq!(stored.0, login_id1);
+                assert_eq!(stored.1, code1);
+        }
+
+        #[tokio::test]
+        async fn test_add_code_after_removal() {
+                let mut store = HashmapTwoFACodeStore::default();
+                let email = create_test_email();
+                let login_id1 = create_test_login_attempt_id();
+                let code1 = create_test_2fa_code();
+
+                // Add and then remove code
+                store.add_code(email.clone(), login_id1, code1).await.unwrap();
+                store.remove_code(&email).await.unwrap();
+
+                // Now adding a new code should succeed
+                let login_id2 = create_test_login_attempt_id();
+                let code2 = TwoFACode::parse("654321".to_string()).unwrap();
                 store.add_code(email.clone(), login_id2.clone(), code2.clone()).await.unwrap();
 
-                // Verify only the second code exists
                 let stored = store.get_code(&email).await.unwrap();
                 assert_eq!(stored.0, login_id2);
                 assert_eq!(stored.1, code2);

@@ -71,11 +71,11 @@ async fn handle_2fa(
         state: &AppState,
         jar: CookieJar,
 ) -> (CookieJar, Result<(StatusCode, Json<LoginResponse>), AuthAPIError>) {
-        // First, we must generate a new random login attempt ID and 2FA code
+        /// Generate a new random login attempt ID and 2FA code
         let login_attempt_id = LoginAttemptId::default();
         let two_fa_code = TwoFACode::default();
 
-        // TODO: Store the ID and code in our 2FA code store. Return `AuthAPIError::UnexpectedError` if the operation fails
+        /// Store the ID and code in our 2FA code store
         state.two_fa_code_store
                 .write()
                 .await
@@ -83,10 +83,10 @@ async fn handle_2fa(
                 .await
                 .expect("Code already exists.");
 
-        // Finally, we need to return the login attempt ID to the client
+        /// Return the login attempt ID to the client
         let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
                 message: "2FA required".to_owned(),
-                login_attempt_id: login_attempt_id.as_ref().to_string(), // Add the generated login attempt ID
+                login_attempt_id: login_attempt_id.as_ref().to_string(),
         }));
 
         (jar, Ok((StatusCode::PARTIAL_CONTENT, response)))

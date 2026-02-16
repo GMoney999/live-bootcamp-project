@@ -49,7 +49,8 @@ pub trait TwoFACodeStore: Send + Sync {
         ) -> Result<(LoginAttemptId, TwoFACode), TwoFACodeStoreError>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TwoFACodeStoreError {
         EmailNotFound,
+        CodeAlreadyExists,
 }
