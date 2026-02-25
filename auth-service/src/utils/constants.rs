@@ -7,7 +7,7 @@ use super::constants::env::JWT_SECRET_ENV_VAR;
 use dotenvy::dotenv;
 use lazy_static::lazy_static;
 
-// Define a lazily evaluated static. lazy_static is needed because std_env::var is not a const function.
+// lazy_static is needed because env::var is not a const function.
 lazy_static! {
         pub static ref JWT_SECRET: String = get_env_var(JWT_SECRET_ENV_VAR);
         pub static ref LOCALHOST_URL: String = get_env_var(LOCALHOST_URL_ENV_VAR);

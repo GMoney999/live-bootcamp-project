@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 
-use crate::domain::{login_attempt_id::LoginAttemptId, two_fa_code::TwoFACode, Email, Password};
+use crate::domain::{
+        login_attempt_id::LoginAttemptId, two_fa_code::TwoFACode, Email, HashedPassword,
+};
 
 use super::User;
 
@@ -11,7 +13,7 @@ pub trait UserStore: Send + Sync {
         async fn validate_user(
                 &self,
                 email: &Email,
-                password: &Password,
+                raw_password: &str,
         ) -> Result<(), UserStoreError>;
 }
 

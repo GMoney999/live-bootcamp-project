@@ -1,6 +1,6 @@
 // src/routes/signup.rs
 use crate::{
-        domain::{AuthAPIError, Email, ErrorResponse, Password, User, UserStore},
+        domain::{AuthAPIError, Email, ErrorResponse, HashedPassword, User, UserStore},
         AppState, HandlerResult,
 };
 use axum::{
@@ -19,7 +19,7 @@ pub async fn handle_signup(
         println!("->> {:<12} — handle_signup – {payload:?}", "HANDLER");
 
         // If the signup route is called with invalid input (ex: an incorrectly formatted email address or password), a 400 HTTP status code should be returned.
-        let (req_email, req_pwd) = validate_credentials(&payload.email, &payload.password)?;
+        let (req_email, req_pwd) = validate_credentials(&payload.email, &payload.password).await?;
 
         // If one attempts to create a new user with an existing email address, a 409 HTTP status code should be returned.
         // NOTE: Scope created to prevent deadlock. Read lock is dropped before write
@@ -42,9 +42,14 @@ pub async fn handle_signup(
         }
 }
 
-fn validate_credentials(email: &str, password: &str) -> Result<(Email, Password), AuthAPIError> {
-        let email = Email::parse(email)?;
-        let pwd = Password::parse(password)?;
+async fn validate_credentials(
+        email: &str,
+        password: &str,
+) -> Result<(Email, HashedPassword), AuthAPIError> {
+        let email = Email::parse(email).map_err(|_| AuthAPIError::InvalidCredentials)?;
+        let pwd = HashedPassword::parse(password)
+                .await
+                .map_err(|_| AuthAPIError::InvalidCredentials)?;
 
         Ok((email, pwd))
 }

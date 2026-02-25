@@ -22,7 +22,7 @@ use routes::{
         handle_verify_token,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{postgres::PgPoolOptions, Executor, PgPool, Pool, Postgres};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_http::{
@@ -30,9 +30,14 @@ use tower_http::{
         services::{ServeDir, ServeFile},
 };
 use utils::fetch_assets;
+use uuid::Uuid;
 
 use crate::{
-        domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
+        domain::{two_fa_code, BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
+        services::data_stores::{
+                postgres_user_store::PostgresUserStore, HashmapTwoFACodeStore,
+                HashsetBannedTokenStore, MockEmailClient,
+        },
         utils::constants::{
                 env::{DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR},
                 get_env_var, DATABASE_URL,
@@ -54,18 +59,50 @@ pub struct AppState {
         pub email_client: EmailClientType,
 }
 
-impl AppState {
-        pub fn new(
-                user_store: UserStoreType,
+#[derive(Default, Clone)]
+pub struct AppStateBuilder {
+        pub user_store: Option<UserStoreType>,
+        pub banned_token_store: Option<BannedTokenStoreType>,
+        pub two_fa_code_store: Option<TwoFACodeStoreType>,
+        pub email_client: Option<EmailClientType>,
+}
+
+impl AppStateBuilder {
+        pub fn new() -> Self {
+                AppStateBuilder::default()
+        }
+
+        pub fn user_store(mut self, user_store: UserStoreType) -> Self {
+                self.user_store = Some(user_store);
+                self
+        }
+
+        pub fn banned_token_store(
+                mut self,
                 banned_token_store: BannedTokenStoreType,
-                two_fa_code_store: TwoFACodeStoreType,
-                email_client: EmailClientType,
         ) -> Self {
-                Self {
-                        user_store,
-                        banned_token_store,
-                        two_fa_code_store,
-                        email_client,
+                self.banned_token_store = Some(banned_token_store);
+                self
+        }
+
+        pub fn two_fa_code_store(mut self, two_fa_code_store: TwoFACodeStoreType) -> Self {
+                self.two_fa_code_store = Some(two_fa_code_store);
+                self
+        }
+
+        pub fn email_client(mut self, email_client: EmailClientType) -> Self {
+                self.email_client = Some(email_client);
+                self
+        }
+
+        pub fn build(self) -> AppState {
+                AppState {
+                        user_store: self.user_store.expect("User Store"),
+                        banned_token_store: self
+                                .banned_token_store
+                                .expect("Banned Token Store"),
+                        two_fa_code_store: self.two_fa_code_store.expect("2FA Code Store"),
+                        email_client: self.email_client.expect("Email Client"),
                 }
         }
 }
@@ -135,14 +172,61 @@ async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
         PgPoolOptions::new().max_connections(5).connect(url).await
 }
 
+/// Production: connect to the existing database and run migrations.
+pub async fn init_postgres_pool() -> PgPool {
+        let url = DATABASE_URL.to_owned();
+        let pool = get_postgres_pool(&url).await.expect("Failed to connect to Postgres");
+        sqlx::migrate!().run(&pool).await.expect("Failed to run database migrations");
+        pool
+}
+
+/// Test-only: create a fresh UUID-named database, run migrations, and return a pool.
+/// This gives each test run an isolated, clean database.
 pub async fn configure_postgresql() -> PgPool {
-        // Create a new database connection pool
-        let pg_pool = get_postgres_pool(&DATABASE_URL)
+        let postgresql_conn_url = DATABASE_URL.to_owned();
+        let db_name = Uuid::new_v4().to_string();
+
+        configure_database(&postgresql_conn_url, &db_name).await;
+
+        let postgres_conn_url_with_db_name = format!("{}/{}", postgresql_conn_url, db_name);
+        get_postgres_pool(&postgres_conn_url_with_db_name)
                 .await
-                .expect("Failed to create Postgres connection pool!");
+                .expect("Failed to create Postgres connection pool")
+}
 
-        // Run database migrations against our test database!
-        sqlx::migrate!().run(&pg_pool).await.expect("Failed to run migrations");
+pub async fn configure_database(db_conn_string: &str, db_name: &str) {
+        let connection = PgPoolOptions::new()
+                .connect(db_conn_string)
+                .await
+                .expect("Failed to create Postgres connection pool.");
 
-        pg_pool
+        connection
+                .execute(format!(r#"CREATE DATABASE "{}";"#, db_name).as_str())
+                .await
+                .expect("Failed to create database.");
+
+        let db_conn_string = format!("{}/{}", db_conn_string, db_name);
+
+        let connection = PgPoolOptions::new()
+                .connect(&db_conn_string)
+                .await
+                .expect("Failed to create Postgres conenction pool.");
+
+        sqlx::migrate!().run(&connection).await.expect("Failed to migrate the database.");
+}
+
+pub fn get_user_store(pool: Pool<Postgres>) -> Arc<RwLock<Box<dyn UserStore + Send + Sync>>> {
+        Arc::new(RwLock::new(Box::new(PostgresUserStore::new(pool))))
+}
+
+pub fn get_banned_token_store() -> Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>> {
+        Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::new())))
+}
+
+pub fn get_two_fa_code_store() -> Arc<RwLock<Box<dyn TwoFACodeStore + Send + Sync>>> {
+        Arc::new(RwLock::new(Box::new(HashmapTwoFACodeStore::new())))
+}
+
+pub fn get_email_client() -> Arc<dyn EmailClient + Send + Sync> {
+        Arc::new(MockEmailClient)
 }

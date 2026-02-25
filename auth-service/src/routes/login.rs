@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
         domain::{
-                AuthAPIError, Email, LoginAttemptId, Password, TwoFACode, TwoFACodeStoreError,
-                UserStore,
+                AuthAPIError, Email, HashedPassword, LoginAttemptId, TwoFACode,
+                TwoFACodeStoreError, UserStore,
         },
         utils::auth::generate_auth_cookie,
         AppState, HandlerResult,
@@ -29,15 +29,16 @@ pub async fn handle_login(
                 Ok(email) => email,
                 Err(e) => return (jar, Err(e.into())),
         };
-        let password = match Password::parse(&payload.password) {
+        let raw_password = payload.password;
+        let password = match HashedPassword::parse(&raw_password).await {
                 Ok(password) => password,
-                Err(e) => return (jar, Err(e.into())),
+                Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
         };
 
         let store = state.user_store.read().await;
 
         // Validate user credentials - return 401 for any validation failure
-        if (store.validate_user(&email, &password).await).is_err() {
+        if (store.validate_user(&email, &raw_password).await).is_err() {
                 return (jar, Err(AuthAPIError::Unauthorized));
         }
 

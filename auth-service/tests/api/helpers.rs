@@ -1,11 +1,11 @@
 use auth_service::{
         domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
         routes::{LoginPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload},
-        services::{
-                hashmap_two_fa_code_store::HashmapTwoFACodeStore, HashmapUserStore,
-                HashsetBannedTokenStore, MockEmailClient,
+        services::data_stores::{
+                HashmapTwoFACodeStore, HashmapUserStore, HashsetBannedTokenStore, MockEmailClient,
         },
-        AppState, Application, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType,
+        AppState, AppStateBuilder, Application, BannedTokenStoreType, EmailClientType,
+        TwoFACodeStoreType,
 };
 use axum_extra::extract::CookieJar;
 use reqwest::cookie::Jar;
@@ -33,12 +33,12 @@ impl TestApp {
                         Arc::new(RwLock::new(Box::new(HashmapTwoFACodeStore::new())));
                 let email_client: Arc<dyn EmailClient + Send + Sync> = Arc::new(MockEmailClient);
 
-                let app_state = AppState::new(
-                        user_store,
-                        banned_token_store.clone(),
-                        two_fa_code_store.clone(),
-                        email_client.clone(),
-                );
+                let app_state = AppStateBuilder::new()
+                        .user_store(user_store)
+                        .banned_token_store(Arc::clone(&banned_token_store))
+                        .two_fa_code_store(Arc::clone(&two_fa_code_store))
+                        .email_client(Arc::clone(&email_client))
+                        .build();
 
                 let app = Application::build(app_state, "127.0.0.1:0").await?;
 

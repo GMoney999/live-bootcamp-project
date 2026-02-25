@@ -1,39 +1,69 @@
 services:
+  # Container: 'app-service'
   app-service:
-    image: gsadeghi15/app-service # specify name of image on Docker Hub
-    restart: "always" # automatically restart container when server crashes
-    environment: # set up environment variables
-      AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-auth-service}  # Use service name for Docker networking:
-    ports:  
-      - "8000:8000" # expose port 8000 so that applications outside the container can connect to it   
-    depends_on: # only run app-service after auth-service has started
+    # Dockerhub image name
+    image: gsadeghi15/app-service #
+    # Automatically restart container when server crashes
+    restart: "always"
+    # Set environment variables
+    environment:
+      # Use service name for Docker networking
+      AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-auth-service}
+    # Assign port 8000 to 'app-service' ccontainer
+    ports:
+      - "8000:8000"
+    # Only run container if auth-service has started
+    depends_on: #
       auth-service:
         condition: service_started
+
+  # Container: 'auth-service'
   auth-service:
+    # Dockerhub image name
     image: gsadeghi15/auth-service
-    restart: "always" # automatically restart container when server crashes
+    # Automatically restart container when server crashes
+    restart: "always"
+    # Set environment variables
     environment:
-      JWT_SECRET: ${JWT_SECRET:-}  # No default for security - must be set
-      LOCALHOST_URL: ${LOCALHOST_URL:-http://localhost:3000}  # Default for local dev
-      DROPLET_URL: ${DROPLET_URL:-http://***************:3000}  # Your droplet IP
-      DROPLET_IP: ${DROPLET_IP:-***************}  # Your droplet IP
-      # New!
-      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
+      # Main security mechanism - must be set
+      JWT_SECRET: ${JWT_SECRET:-}
+      # Default for local dev
+      LOCALHOST_URL: ${LOCALHOST_URL:-http://localhost:3000}
+      # DigitalOcean Droplet URL
+      DROPLET_URL: ${DROPLET_URL:-http://***************:3000}
+      # Droplet IP
+      DROPLET_IP: ${DROPLET_IP:-***************}
+      # Postgres URL
+      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres"
+    # Assign port 3000 to 'auth-service' container
     ports:
       - "3000:3000"
-    # New!
+    # Only run container if 'db' container is healthy
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+  # Container: 'db'
   db:
-    image: postgres:18-alpine
+    # Dockerhub image name
+    image: postgres:15.2-alpine
+    # Automatically restart container when server crashes
     restart: always
+    # Set environment variables
     environment:
+      #
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   db:
-    driver: local 
+    driver: local

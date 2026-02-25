@@ -99,7 +99,7 @@ pub struct Claims {
 #[cfg(test)]
 mod tests {
         use super::*;
-        use crate::services::HashsetBannedTokenStore;
+        use crate::services::data_stores::HashsetBannedTokenStore;
 
         fn create_banned_token_store() -> Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>> {
                 Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::new())))

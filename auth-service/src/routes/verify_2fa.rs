@@ -8,7 +8,7 @@ use axum_extra::extract::CookieJar;
 
 use crate::{
         domain::{
-                AuthAPIError, Email, EmailError, LoginAttemptId, Password, TwoFACode,
+                AuthAPIError, Email, EmailError, HashedPassword, LoginAttemptId, TwoFACode,
                 TwoFACodeStoreError,
         },
         utils::auth::{generate_auth_cookie, GenerateTokenError},

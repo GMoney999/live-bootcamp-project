@@ -1,5 +1,5 @@
 use crate::{
-        domain::{EmailError, PasswordError, TwoFACodeStoreError, UserStoreError},
+        domain::{EmailError, TwoFACodeStoreError, UserStoreError},
         routes::{LogoutError, TokenError},
         utils::auth::GenerateTokenError,
 };
@@ -86,12 +86,6 @@ impl From<UserStoreError> for AuthAPIError {
 
 impl From<EmailError> for AuthAPIError {
         fn from(err: EmailError) -> Self {
-                AuthAPIError::InvalidCredentials
-        }
-}
-
-impl From<PasswordError> for AuthAPIError {
-        fn from(err: PasswordError) -> Self {
                 AuthAPIError::InvalidCredentials
         }
 }
