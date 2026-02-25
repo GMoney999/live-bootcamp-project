@@ -1,0 +1,19 @@
+- name: deploy
+  image: appleboy/drone-ssh
+  settings:
+    host:
+      from_secret: deploy_host        # name only, value lives in Drone
+    username:
+      from_secret: deploy_user
+    key:
+      from_secret: ssh_key
+    envs:
+      - postgres_password
+    script:
+      - export POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - cd /path/to/app
+      - docker compose up -d --pull always
+  environment:
+    POSTGRES_PASSWORD:
+      from_secret: postgres_password  # name only, value lives in Drone
+
