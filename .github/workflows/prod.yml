@@ -102,10 +102,15 @@ jobs:
         script: |
           cd ~
           export JWT_SECRET=${{ secrets.JWT_SECRET }}
+          export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
           export LOCALHOST_URL=http://localhost:3000
           export DROPLET_URL=http://${{ vars.DROPLET_IP }}:3000
           export DROPLET_IP=${{ vars.DROPLET_IP }}
+          if [ -z "$POSTGRES_PASSWORD" ]; then
+            echo "POSTGRES_PASSWORD is not set"
+            exit 1
+          fi
           docker compose down
           docker compose pull
           docker compose up -d
