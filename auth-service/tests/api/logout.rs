@@ -55,6 +55,12 @@ async fn should_return_200_if_valid_jwt_cookie() -> TestResult<()> {
                 "Token should be banned after logout"
         );
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -73,6 +79,12 @@ async fn should_return_400_if_cookie_not_found() -> TestResult<()> {
                 .expect("Could not deserialize response body to ErrorResponse");
 
         assert_eq!(error_response.error, "Missing JWT auth token");
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
 
         Ok(())
 }
@@ -106,6 +118,12 @@ async fn should_return_400_if_logout_called_twice_in_a_row() -> TestResult<()> {
                 .expect("Could not deserialize response body to ErrorResponse");
 
         assert_eq!(error_response.error, "Missing JWT auth token");
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
 
         Ok(())
 }
@@ -151,6 +169,12 @@ async fn should_return_401_if_banned_token() -> TestResult<()> {
 
         assert_eq!(error_response.error, "Invalid JWT auth token");
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -178,6 +202,12 @@ async fn should_return_401_if_invalid_token() -> TestResult<()> {
                 .expect("Could not deserialize response body to ErrorResponse");
 
         assert_eq!(error_response.error, "Invalid JWT auth token");
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
 
         Ok(())
 }

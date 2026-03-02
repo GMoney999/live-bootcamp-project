@@ -33,6 +33,12 @@ async fn should_return_201_if_valid_credentials_and_2fa_disabled() -> TestResult
 
         assert!(!auth_token.name().is_empty());
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -84,6 +90,12 @@ async fn should_return_206_on_repeated_login_if_2fa_code_already_exists() -> Tes
                 .expect("Email must have an active 2FA code after repeated login");
         assert_eq!(stored_login_attempt_id.as_ref(), second_json.login_attempt_id);
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -126,6 +138,12 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() -> TestResult<
                 .expect("Email must be added to 2FA code store during login attempt");
         assert_eq!(login_attempt_id.as_ref(), json_body.login_attempt_id);
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -158,6 +176,12 @@ async fn should_return_400_if_invalid_input() -> TestResult<()> {
                                 .error,
                         "Invalid credentials"
                 );
+        }
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
         }
 
         Ok(())
@@ -194,6 +218,12 @@ async fn should_return_401_if_incorrect_credentials() -> TestResult<()> {
                 "Unauthorized"
         );
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -206,6 +236,12 @@ async fn should_return_422_if_malformed_credentials() -> TestResult<()> {
         });
         let response = app.post_login(&payload).await;
         assert_eq!(response.status().as_u16(), 422);
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
 
         Ok(())
 }

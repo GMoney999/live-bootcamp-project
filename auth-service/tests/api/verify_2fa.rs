@@ -67,6 +67,12 @@ async fn should_return_200_if_correct_code() -> TestResult<()> {
                 .expect("JWT cookie should be set after successful 2FA verification");
         assert!(!auth_cookie.value().is_empty(), "JWT cookie value should not be empty");
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -95,20 +101,20 @@ async fn should_return_400_if_invalid_input() -> TestResult<()> {
         for test_case in test_cases.iter() {
                 let response = app.post_verify_2fa(test_case).await?;
 
+                assert_eq!(response.status().as_u16(), 400, "Failed for input: {:?}", test_case);
                 assert_eq!(
-                        response.status().as_u16(),
-                        400,
-                        "Failed for input: {:?}",
-                        test_case
-                );
-                assert_eq!(
-                        response
-                                .json::<ErrorResponse>()
+                        response.json::<ErrorResponse>()
                                 .await
                                 .expect("Could not deserialize response body to ErrorResponse")
                                 .error,
                         "Invalid credentials".to_owned()
                 );
+        }
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
         }
 
         Ok(())
@@ -139,6 +145,12 @@ async fn should_return_401_if_same_code_twice() -> TestResult<()> {
                 "Second verification with the same code should fail"
         );
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -164,6 +176,12 @@ async fn should_return_401_if_incorrect_credentials() -> TestResult<()> {
         let response = app.post_verify_2fa(&payload).await?;
 
         assert_eq!(response.status().as_u16(), 401);
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
 
         Ok(())
 }
@@ -212,6 +230,12 @@ async fn should_return_401_if_old_code() -> TestResult<()> {
 
         assert_eq!(old_code_response.status().as_u16(), 401);
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -242,6 +266,12 @@ async fn should_return_422_if_malformed_input() -> TestResult<()> {
                         "Failed for malformed input: {:?}",
                         test_case
                 );
+        }
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
         }
 
         Ok(())

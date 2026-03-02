@@ -1,5 +1,5 @@
 use auth_service::{
-        routes::{SignupPayload, LoginPayload, VerifyTokenPayload},
+        routes::{LoginPayload, SignupPayload, VerifyTokenPayload},
         utils::constants::JWT_COOKIE_NAME,
 };
 
@@ -34,6 +34,12 @@ async fn should_return_200_valid_token() -> TestResult<()> {
 
         assert_eq!(response.status().as_u16(), 200, "Valid token should return 200");
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -46,11 +52,13 @@ async fn should_return_401_if_invalid_token() -> TestResult<()> {
         let verify_payload = VerifyTokenPayload::new(invalid_token);
         let response = app.post_verify_token(&verify_payload).await?;
 
-        assert_eq!(
-                response.status().as_u16(),
-                401,
-                "Invalid token should return 401"
-        );
+        assert_eq!(response.status().as_u16(), 401, "Invalid token should return 401");
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
 
         Ok(())
 }
@@ -64,6 +72,12 @@ async fn should_return_422_if_malformed_input() -> TestResult<()> {
         let res = app.post_verify_token(&req).await?;
 
         assert_eq!(res.status().as_u16(), 422);
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
 
         Ok(())
 }

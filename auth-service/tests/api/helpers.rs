@@ -2,31 +2,83 @@ use auth_service::{
         domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
         routes::{LoginPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload},
         services::data_stores::{
-                HashmapTwoFACodeStore, HashmapUserStore, HashsetBannedTokenStore, MockEmailClient,
+                postgres_user_store::PostgresUserStore, HashmapTwoFACodeStore,
+                HashsetBannedTokenStore, MockEmailClient,
         },
+        utils::constants::DATABASE_URL,
         AppState, AppStateBuilder, Application, BannedTokenStoreType, EmailClientType,
         TwoFACodeStoreType,
 };
 use axum_extra::extract::CookieJar;
+use core::panic;
 use reqwest::cookie::Jar;
-use std::{error::Error, sync::Arc};
+use sqlx::{
+        postgres::{PgConnectOptions, PgPoolOptions},
+        Connection, Executor, PgConnection,
+};
+use std::{error::Error, str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
 
 type TestAppResult = core::result::Result<reqwest::Response, Box<dyn std::error::Error>>;
 
 pub struct TestApp {
         pub address: String,
+        pub test_db_name: String,
         pub cookie_jar: Arc<Jar>,
         pub banned_token_store: BannedTokenStoreType,
         pub two_fa_code_store: TwoFACodeStoreType,
         pub email_client: EmailClientType,
         pub http_client: reqwest::Client,
+        pub clean_up_called: bool,
+}
+
+impl Drop for TestApp {
+        fn drop(&mut self) {
+                if !self.clean_up_called {
+                        panic!("Test Database must be cleaned before dropped");
+                }
+        }
+}
+async fn get_test_db_pool(postgresql_conn_url: &str, db_name: &str) -> sqlx::PgPool {
+        let connection_options = PgConnectOptions::from_str(postgresql_conn_url)
+                .expect("Failed to parse PostgreSQL connection string")
+                .database(db_name);
+
+        let pool = PgPoolOptions::new()
+                .max_connections(5)
+                .connect_with(connection_options)
+                .await
+                .expect("Failed to connect to test Postgres database");
+
+        sqlx::migrate!().run(&pool).await.expect("Failed to migrate test Postgres database");
+
+        pool
+}
+
+async fn create_database(postgresql_conn_url: &str, db_name: &str) {
+        let admin_connection_options = PgConnectOptions::from_str(postgresql_conn_url)
+                .expect("Failed to parse PostgreSQL connection string")
+                .database("postgres");
+
+        let mut connection = PgConnection::connect_with(&admin_connection_options)
+                .await
+                .expect("Failed to connect to Postgres");
+
+        connection
+                .execute(format!(r#"CREATE DATABASE "{}";"#, db_name).as_str())
+                .await
+                .expect("Failed to create test database.");
 }
 
 impl TestApp {
         pub async fn new() -> Result<Self, Box<dyn Error>> {
+                let test_db_name = uuid::Uuid::new_v4().to_string();
+                let clean_up_called = false;
+                let postgresql_conn_url: String = DATABASE_URL.to_owned();
+                create_database(&postgresql_conn_url, &test_db_name).await;
+                let test_db_pool = get_test_db_pool(&postgresql_conn_url, &test_db_name).await;
                 let user_store: Arc<RwLock<Box<dyn UserStore + Send + Sync>>> =
-                        Arc::new(RwLock::new(Box::new(HashmapUserStore::new())));
+                        Arc::new(RwLock::new(Box::new(PostgresUserStore::new(test_db_pool))));
                 let banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>> =
                         Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::new())));
                 let two_fa_code_store: Arc<RwLock<Box<dyn TwoFACodeStore + Send + Sync>>> =
@@ -56,12 +108,26 @@ impl TestApp {
 
                 Ok(TestApp {
                         address,
+                        test_db_name,
                         cookie_jar,
                         banned_token_store,
                         two_fa_code_store,
                         email_client,
                         http_client,
+                        clean_up_called,
                 })
+        }
+
+        pub async fn clean_up(&mut self) {
+                if self.clean_up_called {
+                        return;
+                }
+                // Mark as cleaned before teardown so Drop never double-panics if cleanup work itself fails.
+                self.clean_up_called = true;
+                if self.test_db_name.is_empty() {
+                        return;
+                }
+                delete_database(&self.test_db_name).await;
         }
 
         pub async fn get_login_or_signup(&self) -> TestAppResult {
@@ -124,6 +190,41 @@ impl TestApp {
                         .await?;
                 Ok(response)
         }
+}
+
+async fn delete_database(db_name: &str) {
+        let postgresql_conn_url: String = DATABASE_URL.to_owned();
+
+        let connection_options = PgConnectOptions::from_str(&postgresql_conn_url)
+                .expect("Failed to parse PostgreSQL connection string")
+                .database("postgres");
+
+        let mut connection = PgConnection::connect_with(&connection_options)
+                .await
+                .expect("Failed to connect to Postgres");
+
+        // Kill any active connections to the database
+        connection
+                .execute(
+                        format!(
+                                r#"
+                SELECT pg_terminate_backend(pg_stat_activity.pid)
+                FROM pg_stat_activity
+                WHERE pg_stat_activity.datname = '{}'
+                  AND pid <> pg_backend_pid();
+        "#,
+                                db_name
+                        )
+                        .as_str(),
+                )
+                .await
+                .expect("Failed to drop the database.");
+
+        // Drop the database
+        connection
+                .execute(format!(r#"DROP DATABASE IF EXISTS "{}";"#, db_name).as_str())
+                .await
+                .expect("Failed to drop the database.");
 }
 
 pub fn get_random_email() -> String {

@@ -6,5 +6,11 @@ async fn root_returns_auth_ui() -> TestResult<()> {
         let response = app.get_login_or_signup().await?;
         assert_eq!(response.status().as_u16(), 200);
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }

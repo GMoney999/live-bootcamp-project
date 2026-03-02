@@ -26,7 +26,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # Copy full project source tree into "builder"
 COPY . .
 # Set env var to set SQLx to offline mode, using pre-generated query metadata instead of hitting a live db
-ENV SQLX_OFFLINE true
+ENV SQLX_OFFLINE="true"
 # compile 'auth-service' binary
 RUN cargo build --release --bin auth-service
 

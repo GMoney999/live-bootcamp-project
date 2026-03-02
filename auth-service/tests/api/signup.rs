@@ -24,6 +24,12 @@ async fn should_return_201_if_valid_input() -> TestResult<()> {
                 expected_response
         );
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -68,6 +74,12 @@ async fn should_return_422_if_malformed_input() -> TestResult<()> {
         for test_case in test_cases.iter() {
                 let response = app.post_signup(test_case).await;
                 assert_eq!(response.status().as_u16(), 422, "Failed for input: {:?}", test_case);
+        }
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
         }
 
         Ok(())
@@ -117,6 +129,12 @@ async fn should_return_400_if_invalid_input() -> TestResult<()> {
                 );
         }
 
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
+
         Ok(())
 }
 
@@ -145,6 +163,12 @@ async fn should_return_409_if_email_already_exists() -> TestResult<()> {
                         .error,
                 "User already exists".to_owned()
         );
+
+        // Mutable re-bind for teardown
+        {
+                let mut app = app;
+                app.clean_up().await;
+        }
 
         Ok(())
 }
