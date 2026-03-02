@@ -58,6 +58,7 @@ jobs:
         export LOCALHOST_URL=http://localhost:3000
         export DROPLET_URL=http://localhost:3000
         export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
+        export SQLX_OFFLINE=true
         cargo build --verbose
         cargo test --verbose -- --test-threads=1
 
