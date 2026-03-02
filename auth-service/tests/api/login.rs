@@ -37,6 +37,57 @@ async fn should_return_201_if_valid_credentials_and_2fa_disabled() -> TestResult
 }
 
 #[tokio::test]
+async fn should_return_206_on_repeated_login_if_2fa_code_already_exists() -> TestResult<()> {
+        let app = TestApp::new().await?;
+
+        // Create and signup a user with 2FA enabled
+        let random_email = get_random_email();
+        let signup_payload = serde_json::json!({
+                "email": random_email.clone(),
+                "password": "ValidPassword123",
+                "requires2FA": true
+        });
+        let res = app.post_signup(&signup_payload).await;
+        assert_eq!(res.status().as_u16(), 201);
+
+        // First login attempt should require 2FA
+        let login_payload = serde_json::json!({
+                "email": random_email.clone(),
+                "password": "ValidPassword123"
+        });
+        let first_res = app.post_login(&login_payload).await;
+        assert_eq!(first_res.status().as_u16(), 206);
+        let first_json = first_res
+                .json::<TwoFactorAuthResponse>()
+                .await
+                .expect("Could not deserialize first 2FA response");
+
+        // Second login attempt should also require 2FA instead of returning a conflict.
+        let second_res = app.post_login(&login_payload).await;
+        assert_eq!(second_res.status().as_u16(), 206);
+        let second_json = second_res
+                .json::<TwoFactorAuthResponse>()
+                .await
+                .expect("Could not deserialize second 2FA response");
+
+        assert_eq!(second_json.message, "2FA required");
+        assert_ne!(first_json.login_attempt_id, second_json.login_attempt_id);
+
+        // The store should contain the most recent login attempt id.
+        let email = Email::parse(&random_email).expect("Invalid Email");
+        let (stored_login_attempt_id, _) = app
+                .two_fa_code_store
+                .read()
+                .await
+                .get_code(&email)
+                .await
+                .expect("Email must have an active 2FA code after repeated login");
+        assert_eq!(stored_login_attempt_id.as_ref(), second_json.login_attempt_id);
+
+        Ok(())
+}
+
+#[tokio::test]
 async fn should_return_206_if_valid_credentials_and_2fa_enabled() -> TestResult<()> {
         let app = TestApp::new().await?;
         // Create and signup a user

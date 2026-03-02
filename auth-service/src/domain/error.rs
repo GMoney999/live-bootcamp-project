@@ -118,7 +118,7 @@ impl From<TwoFACodeStoreError> for AuthAPIError {
         fn from(err: TwoFACodeStoreError) -> Self {
                 match err {
                         TwoFACodeStoreError::CodeNotFound => AuthAPIError::Unauthorized,
-                        TwoFACodeStoreError::CodeAlreadyExists => AuthAPIError::UserAlreadyExists,
+                        TwoFACodeStoreError::CodeAlreadyExists => AuthAPIError::UnexpectedError,
                 }
         }
 }

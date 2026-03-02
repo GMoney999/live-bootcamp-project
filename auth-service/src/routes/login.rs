@@ -79,14 +79,34 @@ async fn handle_2fa(
         let two_fa_code = TwoFACode::default();
 
         /// Store the ID and code in our 2FA code store
-        let add_code_result = state
-                .two_fa_code_store
-                .write()
-                .await
-                .add_code(email.to_owned(), login_attempt_id.clone(), two_fa_code.clone())
-                .await;
-        if (add_code_result).is_err() {
-                return (jar, Err(TwoFACodeStoreError::CodeAlreadyExists.into()));
+        {
+                let mut two_fa_store = state.two_fa_code_store.write().await;
+                let add_code_result = two_fa_store
+                        .add_code(email.to_owned(), login_attempt_id.clone(), two_fa_code.clone())
+                        .await;
+                match add_code_result {
+                        Ok(_) => {}
+                        Err(TwoFACodeStoreError::CodeAlreadyExists) => {
+                                // Replace stale pending 2FA code for a new login attempt.
+                                if two_fa_store.remove_code(email).await.is_err() {
+                                        return (jar, Err(AuthAPIError::UnexpectedError));
+                                }
+                                if two_fa_store
+                                        .add_code(
+                                                email.to_owned(),
+                                                login_attempt_id.clone(),
+                                                two_fa_code.clone(),
+                                        )
+                                        .await
+                                        .is_err()
+                                {
+                                        return (jar, Err(AuthAPIError::UnexpectedError));
+                                }
+                        }
+                        Err(TwoFACodeStoreError::CodeNotFound) => {
+                                return (jar, Err(AuthAPIError::UnexpectedError));
+                        }
+                }
         }
 
         /// Send 2FA Code via Email Client
