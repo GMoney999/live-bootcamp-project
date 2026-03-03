@@ -1,12 +1,12 @@
 use auth_service::{
         domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
-        get_banned_token_store, get_email_client, get_two_fa_code_store, get_user_store,
-        init_postgres_pool,
+        get_banned_token_store, get_email_client, get_redis_client, get_two_fa_code_store,
+        get_user_store, init_postgres_pool,
         services::data_stores::{
                 postgres_user_store::PostgresUserStore, HashmapTwoFACodeStore, HashmapUserStore,
                 HashsetBannedTokenStore, MockEmailClient,
         },
-        utils::constants::prod,
+        utils::constants::{prod, REDIS_HOST_NAME},
         AppState, AppStateBuilder, Application,
 };
 use sqlx::{Pool, Postgres};

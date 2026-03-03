@@ -9,18 +9,11 @@ use lazy_static::lazy_static;
 
 // lazy_static is needed because env::var is not a const function.
 lazy_static! {
-        pub static ref JWT_SECRET: String = get_env_var(JWT_SECRET_ENV_VAR);
-        pub static ref LOCALHOST_URL: String = get_env_var(LOCALHOST_URL_ENV_VAR);
-        pub static ref DROPLET_URL: String = get_env_var(DROPLET_URL_ENV_VAR);
-        pub static ref DATABASE_URL: String = get_env_var(DATABASE_URL_ENV_VAR);
-}
-
-pub mod prod {
-        pub const APP_ADDRESS: &str = "0.0.0.0:3000";
-}
-
-pub mod test {
-        pub const APP_ADDRESS: &str = "127.0.0.1:3000";
+        pub static ref JWT_SECRET: String = set_token();
+        pub static ref LOCALHOST_URL: String = set_localhost_url();
+        pub static ref DROPLET_URL: String = set_droplet_url();
+        pub static ref DATABASE_URL: String = set_db_url();
+        pub static ref REDIS_HOST_NAME: String = set_redis_host();
 }
 
 pub mod env {
@@ -28,6 +21,7 @@ pub mod env {
         pub const LOCALHOST_URL_ENV_VAR: &str = "LOCALHOST_URL";
         pub const DROPLET_URL_ENV_VAR: &str = "DROPLET_URL";
         pub const DATABASE_URL_ENV_VAR: &str = "DATABASE_URL";
+        pub const REDIS_HOST_NAME_ENV_VAR: &str = "REDIS_HOST_NAME";
 }
 
 pub fn get_env_var<S: Into<String>>(var: S) -> String {
@@ -43,7 +37,38 @@ pub fn get_env_var<S: Into<String>>(var: S) -> String {
         secret
 }
 
+fn set_token() -> String {
+        dotenv().ok();
+        std::env::var(env::JWT_SECRET_ENV_VAR).expect("JWT_SECRET must be set")
+}
+
+fn set_db_url() -> String {
+        dotenv().ok();
+        std::env::var(env::DATABASE_URL_ENV_VAR).expect("DATABASE_URL must be set")
+}
+
+fn set_redis_host() -> String {
+        std::env::var(env::REDIS_HOST_NAME_ENV_VAR).unwrap_or(DEFAULT_REDIS_HOSTNAME.to_owned())
+}
+
+fn set_localhost_url() -> String {
+        std::env::var(env::LOCALHOST_URL_ENV_VAR).expect("LOCALHOST_URL must be set")
+}
+
+fn set_droplet_url() -> String {
+        std::env::var(env::DROPLET_URL_ENV_VAR).expect("DROPLET_URL must be set")
+}
+
 pub const JWT_COOKIE_NAME: &str = "jwt";
+pub const DEFAULT_REDIS_HOSTNAME: &str = "127.0.0.1";
 
 /// This value determines how long the JWT auth token is valid for
 pub const TOKEN_TTL_SECONDS: i64 = 600; // 10 minutes
+
+pub mod prod {
+        pub const APP_ADDRESS: &str = "0.0.0.0:3000";
+}
+
+pub mod test {
+        pub const APP_ADDRESS: &str = "127.0.0.1:0";
+}

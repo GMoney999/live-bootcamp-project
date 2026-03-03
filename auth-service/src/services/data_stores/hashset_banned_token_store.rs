@@ -26,7 +26,7 @@ impl BannedTokenStore for HashsetBannedTokenStore {
                 }
         }
 
-        async fn is_banned(&self, token: String) -> bool {
-                self.banned_tokens.contains(&token)
+        async fn is_banned(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
+                Ok(self.banned_tokens.contains(token))
         }
 }

@@ -43,5 +43,7 @@ WORKDIR /app
 COPY --from=builder /app/target/release/auth-service /usr/local/bin
 # From "builder" stage — copy assets so static resources are available at runtime
 COPY --from=builder /app/assets /app/assets
+# Set env var to set the host name for redis
+ENV REDIS_HOST_NAME=redis
 # When the container starts, run auth-service binary
 ENTRYPOINT ["/usr/local/bin/auth-service"]

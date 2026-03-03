@@ -50,7 +50,6 @@ services:
     restart: always
     # Set environment variables
     environment:
-      #
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -63,6 +62,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+  # Container: 'redis'
+  redis:
+    # Dockerhub image name
+    image: redis:7.0-alpine
+    # Automatically restart container when server crashes
+    restart: always
+    ports: "6379:6379"
 
 volumes:
   db:

@@ -28,12 +28,13 @@ pub enum UserStoreError {
 #[async_trait]
 pub trait BannedTokenStore: Send + Sync {
         async fn ban_token(&mut self, token: String) -> Result<(), BannedTokenStoreError>;
-        async fn is_banned(&self, token: String) -> bool;
+        async fn is_banned(&self, token: &str) -> Result<bool, BannedTokenStoreError>;
 }
 
 #[derive(Debug, PartialEq)]
 pub enum BannedTokenStoreError {
         TokenAlreadyBanned,
+        UnexpectedError,
 }
 
 #[async_trait]

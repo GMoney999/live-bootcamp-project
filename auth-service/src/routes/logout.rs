@@ -1,9 +1,5 @@
 // src/routes/logout.rs
-use axum::{
-        extract::State,
-        http::StatusCode,
-        response::IntoResponse,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::{
         cookie::{Cookie, SameSite},
         CookieJar,
@@ -38,6 +34,9 @@ pub async fn handle_logout(
                         BannedTokenStoreError::TokenAlreadyBanned => {
                                 return (jar, Err(LogoutError::InvalidToken.into()))
                         }
+                        BannedTokenStoreError::UnexpectedError => {
+                                return (jar, Err(LogoutError::UnexpectedError.into()))
+                        }
                 }
         }
 
@@ -56,4 +55,6 @@ pub enum LogoutError {
         MissingToken,
         /// 401
         InvalidToken,
+        /// 500
+        UnexpectedError,
 }

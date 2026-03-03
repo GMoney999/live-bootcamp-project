@@ -15,6 +15,7 @@ use axum::{
         Router,
 };
 use domain::AuthAPIError;
+use redis::{Client as RedisClient, RedisError};
 use reqwest::Url;
 use router::app_routes;
 use routes::{
@@ -36,11 +37,11 @@ use crate::{
         domain::{two_fa_code, BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
         services::data_stores::{
                 postgres_user_store::PostgresUserStore, HashmapTwoFACodeStore,
-                HashsetBannedTokenStore, MockEmailClient,
+                HashsetBannedTokenStore, MockEmailClient, RedisBannedTokenStore,
         },
         utils::constants::{
                 env::{DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR},
-                get_env_var, DATABASE_URL,
+                get_env_var, DATABASE_URL, REDIS_HOST_NAME,
         },
 };
 
@@ -50,6 +51,7 @@ pub type UserStoreType = Arc<RwLock<Box<dyn UserStore + Send + Sync>>>;
 pub type BannedTokenStoreType = Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>>;
 pub type TwoFACodeStoreType = Arc<RwLock<Box<dyn TwoFACodeStore + Send + Sync>>>;
 pub type EmailClientType = Arc<dyn EmailClient + Send + Sync>;
+pub type RedisResult = core::result::Result<RedisClient, RedisError>;
 pub type HandlerResult<T> = core::result::Result<T, AuthAPIError>;
 
 pub struct AppState {
@@ -77,10 +79,7 @@ impl AppStateBuilder {
                 self
         }
 
-        pub fn banned_token_store(
-                mut self,
-                banned_token_store: BannedTokenStoreType,
-        ) -> Self {
+        pub fn banned_token_store(mut self, banned_token_store: BannedTokenStoreType) -> Self {
                 self.banned_token_store = Some(banned_token_store);
                 self
         }
@@ -98,9 +97,7 @@ impl AppStateBuilder {
         pub fn build(self) -> AppState {
                 AppState {
                         user_store: self.user_store.expect("User Store"),
-                        banned_token_store: self
-                                .banned_token_store
-                                .expect("Banned Token Store"),
+                        banned_token_store: self.banned_token_store.expect("Banned Token Store"),
                         two_fa_code_store: self.two_fa_code_store.expect("2FA Code Store"),
                         email_client: self.email_client.expect("Email Client"),
                 }
@@ -167,6 +164,11 @@ fn get_cors(origins: [HeaderValue; 2]) -> CorsLayer {
                 .allow_origin(origins)
 }
 
+pub fn get_redis_client(redis_hostname: String) -> RedisResult {
+        let redis_url = format!("redis://{}/", redis_hostname);
+        redis::Client::open(redis_url)
+}
+
 async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
         // Create a new PostgreSQL connection pool
         PgPoolOptions::new().max_connections(5).connect(url).await
@@ -215,12 +217,20 @@ pub async fn configure_database(db_conn_string: &str, db_name: &str) {
         sqlx::migrate!().run(&connection).await.expect("Failed to migrate the database.");
 }
 
+fn configure_redis() -> redis::Connection {
+        get_redis_client(REDIS_HOST_NAME.to_owned())
+                .expect("Failed to get Redis client")
+                .get_connection()
+                .expect("Failed to get Redis connection")
+}
+
 pub fn get_user_store(pool: Pool<Postgres>) -> Arc<RwLock<Box<dyn UserStore + Send + Sync>>> {
         Arc::new(RwLock::new(Box::new(PostgresUserStore::new(pool))))
 }
 
-pub fn get_banned_token_store() -> Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>> {
-        Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::new())))
+pub fn get_banned_token_store() -> BannedTokenStoreType {
+        let client = configure_redis();
+        Arc::new(RwLock::new(Box::new(RedisBannedTokenStore::new(client))))
 }
 
 pub fn get_two_fa_code_store() -> Arc<RwLock<Box<dyn TwoFACodeStore + Send + Sync>>> {

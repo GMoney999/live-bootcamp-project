@@ -95,6 +95,7 @@ impl From<LogoutError> for AuthAPIError {
                 match err {
                         LogoutError::MissingToken => AuthAPIError::MissingToken,
                         LogoutError::InvalidToken => AuthAPIError::InvalidToken,
+                        LogoutError::UnexpectedError => AuthAPIError::UnexpectedError,
                 }
         }
 }

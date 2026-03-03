@@ -32,7 +32,7 @@ async fn should_return_200_if_valid_jwt_cookie() -> TestResult<()> {
 
         // Verify token is not banned before logout
         assert!(
-                !app.banned_token_store.read().await.is_banned(jwt_token.clone()).await,
+                !app.banned_token_store.read().await.is_banned(&jwt_token).await.unwrap(),
                 "Token should not be banned initially"
         );
 
@@ -51,7 +51,7 @@ async fn should_return_200_if_valid_jwt_cookie() -> TestResult<()> {
 
         // Verify token is added to banned token store
         assert!(
-                app.banned_token_store.read().await.is_banned(jwt_token).await,
+                app.banned_token_store.read().await.is_banned(&jwt_token).await.unwrap(),
                 "Token should be banned after logout"
         );
 
