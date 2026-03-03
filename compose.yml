@@ -68,7 +68,8 @@ services:
     image: redis:7.0-alpine
     # Automatically restart container when server crashes
     restart: always
-    ports: "6379:6379"
+    ports:
+      - "6379:6379"
 
 volumes:
   db:
