@@ -3,6 +3,7 @@
 pub mod domain;
 pub mod router;
 pub mod routes;
+pub mod sandbox;
 pub mod services;
 pub mod utils;
 
@@ -15,7 +16,7 @@ use axum::{
         Router,
 };
 use domain::AuthAPIError;
-use redis::{Client as RedisClient, RedisError};
+use redis::{Client as RedisClient, Connection, RedisError};
 use reqwest::Url;
 use router::app_routes;
 use routes::{
@@ -38,6 +39,7 @@ use crate::{
         services::data_stores::{
                 postgres_user_store::PostgresUserStore, HashmapTwoFACodeStore,
                 HashsetBannedTokenStore, MockEmailClient, RedisBannedTokenStore,
+                RedisTwoFACodeStore,
         },
         utils::constants::{
                 env::{DROPLET_URL_ENV_VAR, LOCALHOST_URL_ENV_VAR},
@@ -234,7 +236,8 @@ pub fn get_banned_token_store() -> BannedTokenStoreType {
 }
 
 pub fn get_two_fa_code_store() -> Arc<RwLock<Box<dyn TwoFACodeStore + Send + Sync>>> {
-        Arc::new(RwLock::new(Box::new(HashmapTwoFACodeStore::new())))
+        let conn = configure_redis();
+        Arc::new(RwLock::new(Box::new(RedisTwoFACodeStore::new(conn))))
 }
 
 pub fn get_email_client() -> Arc<dyn EmailClient + Send + Sync> {

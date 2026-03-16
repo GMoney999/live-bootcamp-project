@@ -1,5 +1,6 @@
 use auth_service::{
         domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
+        get_two_fa_code_store,
         routes::{LoginPayload, SignupPayload, Verify2FAPayload, VerifyTokenPayload},
         services::data_stores::{
                 postgres_user_store::PostgresUserStore, HashmapTwoFACodeStore,
@@ -81,8 +82,7 @@ impl TestApp {
                         Arc::new(RwLock::new(Box::new(PostgresUserStore::new(test_db_pool))));
                 let banned_token_store: Arc<RwLock<Box<dyn BannedTokenStore + Send + Sync>>> =
                         Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::new())));
-                let two_fa_code_store: Arc<RwLock<Box<dyn TwoFACodeStore + Send + Sync>>> =
-                        Arc::new(RwLock::new(Box::new(HashmapTwoFACodeStore::new())));
+                let two_fa_code_store = get_two_fa_code_store();
                 let email_client: Arc<dyn EmailClient + Send + Sync> = Arc::new(MockEmailClient);
 
                 let app_state = AppStateBuilder::new()

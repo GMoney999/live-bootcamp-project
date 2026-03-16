@@ -120,6 +120,10 @@ impl From<TwoFACodeStoreError> for AuthAPIError {
                 match err {
                         TwoFACodeStoreError::CodeNotFound => AuthAPIError::Unauthorized,
                         TwoFACodeStoreError::CodeAlreadyExists => AuthAPIError::UnexpectedError,
+                        TwoFACodeStoreError::UnexpectedError => AuthAPIError::UnexpectedError,
+                        TwoFACodeStoreError::LoginAttemptIdNotFound => {
+                                AuthAPIError::UnexpectedError
+                        }
                 }
         }
 }

@@ -56,4 +56,6 @@ pub trait TwoFACodeStore: Send + Sync {
 pub enum TwoFACodeStoreError {
         CodeNotFound,
         CodeAlreadyExists,
+        LoginAttemptIdNotFound,
+        UnexpectedError,
 }

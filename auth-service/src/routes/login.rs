@@ -103,7 +103,7 @@ async fn handle_2fa(
                                         return (jar, Err(AuthAPIError::UnexpectedError));
                                 }
                         }
-                        Err(TwoFACodeStoreError::CodeNotFound) => {
+                        _ => {
                                 return (jar, Err(AuthAPIError::UnexpectedError));
                         }
                 }
