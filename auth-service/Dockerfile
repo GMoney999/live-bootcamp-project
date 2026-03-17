@@ -6,7 +6,7 @@ USER root
 # Install:
 #     - musl-dev C library headers
 #     - cargo-chef
-RUN apk add --no-cache musl-dev & cargo install cargo-chef
+RUN apk add --no-cache musl-dev && cargo install cargo-chef --locked
 # cd /app
 WORKDIR /app
 
