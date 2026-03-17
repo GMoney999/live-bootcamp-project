@@ -24,6 +24,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       # Checkout code from the repository
@@ -58,6 +67,7 @@ jobs:
         export LOCALHOST_URL=http://localhost:3000
         export DROPLET_URL=http://localhost:3000
         export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
+        export REDIS_HOST_NAME=127.0.0.1
         export SQLX_OFFLINE=true
         cargo build --verbose
         cargo test --verbose -- --test-threads=1
