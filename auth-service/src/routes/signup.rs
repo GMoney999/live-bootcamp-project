@@ -12,6 +12,7 @@ use axum::{
 use regex::Regex;
 
 /// POST – /signup
+#[tracing::instrument(name = "Singnup", skip_all, err(Debug))]
 pub async fn handle_signup(
         State(state): State<AppState>,
         Json(payload): Json<SignupPayload>,

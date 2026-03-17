@@ -146,8 +146,7 @@ impl Application {
         }
 
         pub async fn run(self) -> Result<(), std::io::Error> {
-                println!("Spinning up application...");
-                println!("Running on {}", self.address);
+                tracing::info!("Listening on {}", &self.address);
                 self.server.await
         }
 }

@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod constants;
+pub mod tracing;
 
 use axum::routing::{get_service, MethodRouter};
 use tower_http::services::{ServeDir, ServeFile};

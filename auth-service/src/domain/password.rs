@@ -34,6 +34,7 @@ impl HashedPassword {
         }
 
         /// Verify a raw password against this hashed password
+        #[tracing::instrument(name = "Verify raw password", skip_all)]
         pub async fn verify_raw_password(
                 &self,
                 password_candidate: &str,
@@ -58,19 +59,32 @@ impl HashedPassword {
 
 /// Helper function to compute password hash
 /// NOTE: Hashing is a CPU-intensive operation. To avoid blocking other async tasks, perform hashing on a separate thread pool (tokio::task::spawn_blocking)
+#[tracing::instrument(name = "Compute password hash", skip_all)]
 async fn compute_password_hash(password: String) -> Result<String, Box<dyn Error + Send + Sync>> {
-        tokio::task::spawn_blocking(move || {
-                let salt = SaltString::generate(&mut OsRng);
-                let argon2 = Argon2::default();
+        // This line retrieves the current span from the tracing context.
+        // The span represents the execution context for the compute_password_hash function.
+        let current_span: tracing::Span = tracing::Span::current(); // New!
+        let password = password.to_owned();
 
-                let password_hash = argon2
-                        .hash_password(password.as_bytes(), &salt)
-                        .map_err(|e| -> Box<dyn Error + Send + Sync> { Box::new(e) })?;
+        let result = tokio::task::spawn_blocking(move || {
+                // This code block ensures that the operations within the closure are executed within the context of the current span.
+                // This is especially useful for tracing operations that are performed in a different thread or task, such as within tokio::task::spawn_blocking.
+                current_span.in_scope(|| {
+                        let salt: SaltString = SaltString::generate(&mut OsRng);
+                        let password_hash = Argon2::new(
+                                Algorithm::Argon2id,
+                                Version::V0x13,
+                                Params::new(15000, 2, 1, None)?,
+                        )
+                        .hash_password(password.as_bytes(), &salt)?
+                        .to_string();
 
-                Ok(password_hash.to_string())
+                        Ok(password_hash)
+                })
         })
-        .await
-        .map_err(|e| -> Box<dyn Error + Send + Sync> { format!("Task join error: {}", e).into() })?
+        .await;
+
+        result?
 }
 
 async fn validate_raw_password(pwd: &str) -> Result<(), String> {

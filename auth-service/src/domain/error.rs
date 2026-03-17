@@ -10,6 +10,7 @@ pub struct ErrorResponse {
         pub error: String,
 }
 
+#[derive(Debug)]
 pub enum AuthAPIError {
         /// 400
         InvalidCredentials,

@@ -1,3 +1,4 @@
+// src/main.rs
 use auth_service::{
         domain::{BannedTokenStore, EmailClient, TwoFACodeStore, UserStore},
         get_banned_token_store, get_email_client, get_redis_client, get_two_fa_code_store,
@@ -6,7 +7,10 @@ use auth_service::{
                 postgres_user_store::PostgresUserStore, HashmapTwoFACodeStore, HashmapUserStore,
                 HashsetBannedTokenStore, MockEmailClient,
         },
-        utils::constants::{prod, REDIS_HOST_NAME},
+        utils::{
+                constants::{prod, REDIS_HOST_NAME},
+                tracing::init_tracing,
+        },
         AppState, AppStateBuilder, Application,
 };
 use sqlx::{Pool, Postgres};
@@ -16,6 +20,7 @@ use tokio::sync::RwLock;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
         color_eyre::install()?;
+        init_tracing();
 
         let pg_pool = init_postgres_pool().await;
 
